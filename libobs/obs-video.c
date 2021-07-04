@@ -385,7 +385,7 @@ static inline void stage_output_texture(struct obs_core_video *video,
 	profile_end(stage_output_texture_name);
 }
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__linux__)
 static inline bool queue_frame(struct obs_core_video *video, bool raw_active,
 			       struct obs_vframe_info *vframe_info)
 {
@@ -412,7 +412,9 @@ static inline bool queue_frame(struct obs_core_video *video, bool raw_active,
 	circlebuf_pop_front(&video->gpu_encoder_avail_queue, &tf, sizeof(tf));
 
 	if (tf.released) {
+#ifdef _WIN32
 		gs_texture_acquire_sync(tf.tex, tf.lock_key, GS_WAIT_INFINITE);
+#endif
 		tf.released = false;
 	}
 
@@ -421,8 +423,12 @@ static inline bool queue_frame(struct obs_core_video *video, bool raw_active,
 	 * reason.  otherwise, it goes to the 'duplicate' case above, which
 	 * will ensure better performance. */
 	if (raw_active || vframe_info->count > 1) {
-		gs_copy_texture(tf.tex, video->convert_textures[0]);
-	} else {
+		gs_texture_t *tex = video->gpu_conversion
+					    ? video->convert_textures[0]
+					    : video->output_texture;
+
+		gs_copy_texture(tf.tex, tex);
+	} else if (video->gpu_conversion) {
 		gs_texture_t *tex = video->convert_textures[0];
 		gs_texture_t *tex_uv = video->convert_textures[1];
 
@@ -431,13 +437,23 @@ static inline bool queue_frame(struct obs_core_video *video, bool raw_active,
 
 		tf.tex = tex;
 		tf.tex_uv = tex_uv;
+	} else {
+		gs_texture_t *tex = video->output_texture;
+
+		video->output_texture = tf.tex;
+
+		tf.tex = tex;
 	}
 
 	tf.count = 1;
 	tf.timestamp = vframe_info->timestamp;
 	tf.released = true;
+#ifdef _WIN32
 	tf.handle = gs_texture_get_shared_handle(tf.tex);
 	gs_texture_release_sync(tf.tex, ++tf.lock_key);
+#else
+	tf.handle = (uint32_t)-1;
+#endif
 	circlebuf_push_back(&video->gpu_encoder_queue, &tf, sizeof(tf));
 
 	os_sem_post(video->gpu_encode_semaphore);
@@ -460,8 +476,10 @@ static void output_gpu_encoders(struct obs_core_video *video, bool raw_active)
 {
 	profile_start(output_gpu_encoders_name);
 
+#ifdef _WIN32
 	if (!video->texture_converted)
 		goto end;
+#endif
 	if (!video->vframe_info_buffer_gpu.size)
 		goto end;
 
@@ -491,7 +509,7 @@ static inline void render_video(struct obs_core_video *video, bool raw_active,
 	if (raw_active || gpu_active) {
 		gs_texture_t *texture = render_output_texture(video);
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__linux__)
 		if (gpu_active)
 			gs_flush();
 #endif
@@ -499,7 +517,7 @@ static inline void render_video(struct obs_core_video *video, bool raw_active,
 		if (video->gpu_conversion)
 			render_convert_texture(video, texture);
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__linux__)
 		if (gpu_active) {
 			gs_flush();
 			output_gpu_encoders(video, raw_active);
@@ -932,7 +950,7 @@ bool obs_graphics_thread_loop(struct obs_graphics_context *context)
 	uint64_t frame_start = os_gettime_ns();
 	uint64_t frame_time_ns;
 	bool raw_active = obs->video.raw_active > 0;
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__linux__)
 	const bool gpu_active = obs->video.gpu_encoder_active > 0;
 	const bool active = raw_active || gpu_active;
 #else
