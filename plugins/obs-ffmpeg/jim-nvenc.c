@@ -140,21 +140,40 @@ static void nv_bitstream_free(struct nvenc_data *enc, struct nv_bitstream *bs)
 struct nv_texture {
 	void *res;
 	ID3D11Texture2D *tex;
+	bool is_nv12;
 	void *mapped_res;
 };
 
-static bool nv_texture_init(struct nvenc_data *enc, struct nv_texture *nvtex)
+static bool complete_texture(struct nvenc_data *enc, struct nv_texture *nvtex,
+			     bool nv12)
 {
 	ID3D11Device *device = enc->device;
 	ID3D11Texture2D *tex;
 	HRESULT hr;
+
+	if (nvtex->is_nv12 == nv12 && nvtex->tex) {
+		return true;
+	}
+
+	if (nvtex->mapped_res) {
+		nv.nvEncUnmapInputResource(enc->session, nvtex->mapped_res);
+		nvtex->mapped_res = NULL;
+	}
+	if (nvtex->res) {
+		nv.nvEncUnregisterResource(enc->session, nvtex->res);
+		nvtex->res = NULL;
+	}
+	if (nvtex->tex) {
+		nvtex->tex->lpVtbl->Release(nvtex->tex);
+		nvtex->tex = NULL;
+	}
 
 	D3D11_TEXTURE2D_DESC desc = {0};
 	desc.Width = enc->cx;
 	desc.Height = enc->cy;
 	desc.MipLevels = 1;
 	desc.ArraySize = 1;
-	desc.Format = DXGI_FORMAT_NV12;
+	desc.Format = nv12 ? DXGI_FORMAT_NV12 : DXGI_FORMAT_R8G8B8A8_UNORM;
 	desc.SampleDesc.Count = 1;
 	desc.BindFlags = D3D11_BIND_RENDER_TARGET;
 
@@ -171,7 +190,8 @@ static bool nv_texture_init(struct nvenc_data *enc, struct nv_texture *nvtex)
 	res.resourceToRegister = tex;
 	res.width = enc->cx;
 	res.height = enc->cy;
-	res.bufferFormat = NV_ENC_BUFFER_FORMAT_NV12;
+	res.bufferFormat = nv12 ? NV_ENC_BUFFER_FORMAT_NV12
+				: NV_ENC_BUFFER_FORMAT_ABGR;
 
 	if (NV_FAILED(nv.nvEncRegisterResource(enc->session, &res))) {
 		tex->lpVtbl->Release(tex);
@@ -180,7 +200,18 @@ static bool nv_texture_init(struct nvenc_data *enc, struct nv_texture *nvtex)
 
 	nvtex->res = res.registeredResource;
 	nvtex->tex = tex;
+	nvtex->is_nv12 = nv12;
 	return true;
+}
+
+static bool nv_texture_init(struct nvenc_data *enc, struct nv_texture *nvtex,
+			    bool nv12)
+{
+	nvtex->res = NULL;
+	nvtex->tex = NULL;
+	nvtex->is_nv12 = false;
+	nvtex->mapped_res = NULL;
+	return complete_texture(enc, nvtex, nv12);
 }
 
 static void nv_texture_free(struct nvenc_data *enc, struct nv_texture *nvtex)
@@ -611,10 +642,14 @@ static bool init_bitstreams(struct nvenc_data *enc)
 
 static bool init_textures(struct nvenc_data *enc)
 {
+	video_t *video = obs_encoder_video(enc->encoder);
+	const struct video_output_info *voi = video_output_get_info(video);
+
 	da_reserve(enc->bitstreams, enc->buf_count);
 	for (int i = 0; i < enc->buf_count; i++) {
 		struct nv_texture texture;
-		if (!nv_texture_init(enc, &texture)) {
+		if (!nv_texture_init(enc, &texture,
+				     voi->format == VIDEO_FORMAT_NV12)) {
 			return false;
 		}
 
@@ -663,6 +698,12 @@ fail:
 	return NULL;
 }
 
+static bool is_format_supported(enum video_format format)
+{
+	return format == VIDEO_FORMAT_NV12 || format == VIDEO_FORMAT_RGBA ||
+	       format == VIDEO_FORMAT_BGRA || format == VIDEO_FORMAT_BGRX;
+}
+
 static void *nvenc_create(obs_data_t *settings, obs_encoder_t *encoder)
 {
 	/* this encoder requires shared textures, this cannot be used on a
@@ -680,9 +721,11 @@ static void *nvenc_create(obs_data_t *settings, obs_encoder_t *encoder)
 		goto reroute;
 	}
 
-	if (!obs_nv12_tex_active()) {
+	video_t *video = obs_encoder_video(encoder);
+	const struct video_output_info *voi = video_output_get_info(video);
+	if (!is_format_supported(voi->format)) {
 		blog(LOG_INFO,
-		     "[jim-nvenc] nv12 not active, falling back to ffmpeg");
+		     "[jim-nvenc] unsupported video format, falling back to ffmpeg");
 		goto reroute;
 	}
 
@@ -885,6 +928,7 @@ static bool nvenc_encode_tex(void *data, uint32_t handle, int64_t pts,
 	struct nv_texture *nvtex;
 	struct nv_bitstream *bs;
 	NVENCSTATUS err;
+	bool use_nv12 = obs_nv12_tex_active();
 
 	if (handle == GS_INVALID_HANDLE) {
 		error("Encode failed: bad texture handle");
@@ -894,6 +938,12 @@ static bool nvenc_encode_tex(void *data, uint32_t handle, int64_t pts,
 
 	bs = &enc->bitstreams.array[enc->next_bitstream];
 	nvtex = &enc->textures.array[enc->next_bitstream];
+
+	if (!complete_texture(enc, nvtex, use_nv12)) {
+		error("Encode failed: could not complete texture");
+		*next_key = lock_key;
+		return false;
+	}
 
 	input_tex = get_tex_from_handle(enc, handle, &km);
 	output_tex = nvtex->tex;
@@ -938,7 +988,8 @@ static bool nvenc_encode_tex(void *data, uint32_t handle, int64_t pts,
 	params.version = NV_ENC_PIC_PARAMS_VER;
 	params.pictureStruct = NV_ENC_PIC_STRUCT_FRAME;
 	params.inputBuffer = nvtex->mapped_res;
-	params.bufferFmt = NV_ENC_BUFFER_FORMAT_NV12;
+	params.bufferFmt = use_nv12 ? NV_ENC_BUFFER_FORMAT_NV12
+				    : NV_ENC_BUFFER_FORMAT_ABGR;
 	params.inputTimeStamp = (uint64_t)pts;
 	params.inputWidth = enc->cx;
 	params.inputHeight = enc->cy;
@@ -994,7 +1045,7 @@ static bool nvenc_encode_texture_available(void *data,
 					   struct video_scale_info *info)
 {
 	UNUSED_PARAMETER(data);
-	return info->format == VIDEO_FORMAT_NV12;
+	return is_format_supported(info->format);
 }
 
 extern void nvenc_defaults(obs_data_t *settings);
