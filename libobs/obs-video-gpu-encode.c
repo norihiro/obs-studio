@@ -71,7 +71,7 @@ static void *gpu_encode_thread(void *unused)
 		for (size_t i = 0; i < encoders.num; i++) {
 			struct encoder_packet pkt = {0};
 			bool received = false;
-			bool success;
+			bool success = false;
 
 			obs_encoder_t *encoder = encoders.array[i];
 			struct obs_encoder *pair = encoder->paired_encoder;
@@ -104,10 +104,30 @@ static void *gpu_encode_thread(void *unused)
 			else
 				next_key++;
 
-			success = encoder->info.encode_texture(
-				encoder->context.data, tf.handle,
-				encoder->cur_pts, lock_key, &next_key, &pkt,
-				&received);
+			if (encoder->info.encode_texture2) {
+				union {
+					struct encoder_texture tex;
+					char dummy[sizeof(struct encoder_texture) +
+						   sizeof(struct gs_texture *) *
+							   3];
+				} tex;
+				memset(&tex, 0, sizeof(tex));
+				obs_encoder_get_video_info(encoder,
+							   &tex.tex.info);
+				tex.tex.handle = tf.handle;
+				tex.tex.tex[0] = tf.tex;
+				tex.tex.tex[1] = tf.tex_uv;
+				tex.tex.tex[2] = NULL;
+				success = encoder->info.encode_texture2(
+					encoder->context.data, &tex.tex,
+					encoder->cur_pts, lock_key, &next_key,
+					&pkt, &received);
+			} else {
+				success = encoder->info.encode_texture(
+					encoder->context.data, tf.handle,
+					encoder->cur_pts, lock_key, &next_key,
+					&pkt, &received);
+			}
 			send_off_encoder_packet(encoder, success, received,
 						&pkt);
 
