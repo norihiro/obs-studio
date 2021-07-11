@@ -165,13 +165,6 @@ finish:
 
 extern bool load_nvenc_lib(void);
 
-#ifndef _WIN32
-bool load_nvenc_lib(void)
-{
-	return os_dlopen("libnvidia-encode.so.1");
-}
-#endif
-
 static bool nvenc_supported(void)
 {
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58, 9, 100)
@@ -216,11 +209,6 @@ static bool vaapi_supported(void)
 
 extern void jim_nvenc_load(void);
 extern void jim_nvenc_unload(void);
-
-#ifndef _WIN32
-void jim_nvenc_load(void) {}
-void jim_nvenc_unload(void) {}
-#endif
 
 #if ENABLE_FFMPEG_LOGGING
 extern void obs_ffmpeg_load_logging(void);
