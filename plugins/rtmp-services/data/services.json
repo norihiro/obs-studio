@@ -2323,15 +2323,6 @@
                     "url":  "rtmp://rtmp.boxcast.com/live"
                 }
             ]
-        },
-        {
-            "name": "Disciple Media",
-            "servers": [
-                {
-                    "name": "Default",
-                    "url":  "rtmp://rtmp.disciplemedia.com/b-fme"
-                }
-            ]
         }
     ]
 }
