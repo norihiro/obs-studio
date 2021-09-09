@@ -1,0 +1,20 @@
+name: Commit Message Check
+
+on: [pull_request]
+
+jobs:
+  ubuntu64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Fetch OBS Studio master
+        run: |
+          git fetch https://github.com/obsproject/obs-studio.git
+
+      - name: Check the log messages
+        run: |
+          git log FETCH_HEAD.. | ./CI/check-log-msg.awk -v GITHUB_EVENT_NAME=${{env.GITHUB_EVENT_NAME}}
