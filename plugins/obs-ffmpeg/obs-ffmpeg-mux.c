@@ -324,8 +324,18 @@ static bool ffmpeg_mux_start(void *data)
 		if (!service)
 			return false;
 		path = obs_service_get_url(service);
+		stream->split_file = false;
 	} else {
 		path = obs_data_get_string(settings, "path");
+
+		stream->max_time =
+			obs_data_get_int(settings, "max_time_sec") * 1000000LL;
+		stream->max_size = obs_data_get_int(settings, "max_size_mb") *
+				   (1024 * 1024);
+		stream->split_file = stream->max_time > 0 ||
+				     stream->max_size > 0;
+		stream->cur_size = 0;
+		stream->sent_headers = false;
 	}
 
 	if (!stream->is_network) {
@@ -516,6 +526,10 @@ bool write_packet(struct ffmpeg_muxer *stream, struct encoder_packet *packet)
 	}
 
 	stream->total_bytes += packet->size;
+
+	if (stream->split_file)
+		stream->cur_size += packet->size;
+
 	return true;
 }
 
@@ -561,6 +575,30 @@ bool send_headers(struct ffmpeg_muxer *stream)
 	return true;
 }
 
+static inline bool should_split(struct ffmpeg_muxer *stream,
+				struct encoder_packet *packet)
+{
+	/* split at video frame */
+	if (packet->type != OBS_ENCODER_VIDEO)
+		return false;
+
+	/* don't split group of pictures */
+	if (!packet->keyframe)
+		return false;
+
+	/* reached maximum file size */
+	if (stream->max_size > 0 &&
+	    stream->cur_size + (int64_t)packet->size >= stream->max_size)
+		return true;
+
+	/* reached maximum duration */
+	if (stream->max_time > 0 &&
+	    packet->dts_usec - stream->cur_time >= stream->max_time)
+		return true;
+
+	return false;
+}
+
 static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 {
 	struct ffmpeg_muxer *stream = data;
@@ -574,11 +612,33 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 		return;
 	}
 
+	if (stream->split_file && should_split(stream, packet)) {
+
+		os_process_pipe_destroy(stream->pipe);
+
+		generate_filename(stream, &stream->path);
+		info("Changing output file to '%s'", stream->path.array);
+		start_pipe(stream, stream->path.array);
+		if (!stream->pipe) {
+			obs_output_set_last_error(
+				stream->output,
+				obs_module_text("HelperProcessFailed"));
+			warn("Failed to create process pipe to split file");
+			return;
+		}
+
+		stream->cur_size = 0;
+		stream->sent_headers = false;
+	}
+
 	if (!stream->sent_headers) {
 		if (!send_headers(stream))
 			return;
 
 		stream->sent_headers = true;
+
+		if (stream->split_file)
+			stream->cur_time = packet->dts_usec;
 	}
 
 	if (stopping(stream)) {
