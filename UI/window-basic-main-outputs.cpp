@@ -1834,6 +1834,10 @@ bool AdvancedOutput::StartRecording()
 	const char *filenameFormat;
 	bool noSpace = false;
 	bool overwriteIfExists = false;
+	bool splitFile;
+	const char *splitFileType;
+	int splitFileTime;
+	int splitFileSize;
 
 	if (!useStreamEncoder) {
 		if (!ffmpegOutput) {
@@ -1863,6 +1867,8 @@ bool AdvancedOutput::StartRecording()
 					  ffmpegRecording
 						  ? "FFFileNameWithoutSpace"
 						  : "RecFileNameWithoutSpace");
+		splitFile = config_get_bool(main->Config(), "AdvOut",
+					    "RecSplitFile");
 
 		string strPath = GetRecordingFilename(path, recFormat, noSpace,
 						      overwriteIfExists,
@@ -1872,6 +1878,31 @@ bool AdvancedOutput::StartRecording()
 		OBSDataAutoRelease settings = obs_data_create();
 		obs_data_set_string(settings, ffmpegRecording ? "url" : "path",
 				    strPath.c_str());
+
+		if (splitFile) {
+			splitFileType = config_get_string(
+				main->Config(), "AdvOut", "RecSplitFileType");
+			splitFileTime =
+				(astrcmpi(splitFileType, "Time") == 0)
+					? config_get_int(main->Config(),
+							 "AdvOut",
+							 "RecSplitFileTime")
+					: 0;
+			splitFileSize =
+				(astrcmpi(splitFileType, "Size") == 0)
+					? config_get_int(main->Config(),
+							 "AdvOut",
+							 "RecSplitFileSize")
+					: 0;
+			obs_data_set_string(settings, "directory", path);
+			obs_data_set_string(settings, "format", filenameFormat);
+			obs_data_set_string(settings, "extension", recFormat);
+			obs_data_set_bool(settings, "allow_spaces", !noSpace);
+			obs_data_set_int(settings, "max_time_sec",
+					 splitFileTime);
+			obs_data_set_int(settings, "max_size_mb",
+					 splitFileSize);
+		}
 
 		obs_output_update(fileOutput, settings);
 	}

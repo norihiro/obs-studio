@@ -1414,6 +1414,10 @@ bool OBSBasic::InitBasicConfigDefaults()
 	config_set_default_uint(basicConfig, "AdvOut", "Track5Bitrate", 160);
 	config_set_default_uint(basicConfig, "AdvOut", "Track6Bitrate", 160);
 
+	config_set_default_uint(basicConfig, "AdvOut", "RecSplitFileTime", 900);
+	config_set_default_uint(basicConfig, "AdvOut", "RecSplitFileSize",
+				2048);
+
 	config_set_default_bool(basicConfig, "AdvOut", "RecRB", false);
 	config_set_default_uint(basicConfig, "AdvOut", "RecRBTime", 20);
 	config_set_default_int(basicConfig, "AdvOut", "RecRBSize", 512);
