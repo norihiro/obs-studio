@@ -325,6 +325,7 @@ static bool ffmpeg_mux_start(void *data)
 			return false;
 		path = obs_service_get_url(service);
 		stream->split_file = false;
+		stream->reset_timestamps = false;
 	} else {
 		path = obs_data_get_string(settings, "path");
 
@@ -334,8 +335,17 @@ static bool ffmpeg_mux_start(void *data)
 				   (1024 * 1024);
 		stream->split_file = stream->max_time > 0 ||
 				     stream->max_size > 0;
+		stream->reset_timestamps =
+			obs_data_get_bool(settings, "reset_timestamps");
 		stream->cur_size = 0;
 		stream->sent_headers = false;
+	}
+
+	stream->found_video = false;
+	stream->video_pts_offset = 0;
+	for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
+		stream->found_audio[i] = false;
+		stream->audio_dts_offsets[i] = 0;
 	}
 
 	if (!stream->is_network) {
@@ -510,6 +520,16 @@ bool write_packet(struct ffmpeg_muxer *stream, struct encoder_packet *packet)
 							: FFM_PACKET_AUDIO,
 				       .keyframe = packet->keyframe};
 
+	if (stream->split_file && stream->reset_timestamps) {
+		if (is_video) {
+			info.dts -= stream->video_pts_offset;
+			info.pts -= stream->video_pts_offset;
+		} else {
+			info.dts -= stream->audio_dts_offsets[info.index];
+			info.pts -= stream->audio_dts_offsets[info.index];
+		}
+	}
+
 	ret = os_process_pipe_write(stream->pipe, (const uint8_t *)&info,
 				    sizeof(info));
 	if (ret != sizeof(info)) {
@@ -629,6 +649,13 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 
 		stream->cur_size = 0;
 		stream->sent_headers = false;
+
+		stream->found_video = false;
+		stream->video_pts_offset = 0;
+		for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
+			stream->found_audio[i] = false;
+			stream->audio_dts_offsets[i] = 0;
+		}
 	}
 
 	if (!stream->sent_headers) {
@@ -645,6 +672,21 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 		if (packet->sys_dts_usec >= stream->stop_ts) {
 			deactivate(stream, 0);
 			return;
+		}
+	}
+
+	if (stream->split_file && stream->reset_timestamps) {
+		if (packet->type == OBS_ENCODER_VIDEO) {
+			if (!stream->found_video) {
+				stream->video_pts_offset = packet->pts;
+				stream->found_video = true;
+			}
+		} else {
+			if (!stream->found_audio[packet->track_idx]) {
+				stream->audio_dts_offsets[packet->track_idx] =
+					packet->dts;
+				stream->found_audio[packet->track_idx] = true;
+			}
 		}
 	}
 
