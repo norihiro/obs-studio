@@ -337,6 +337,8 @@ static bool ffmpeg_mux_start(void *data)
 				     stream->max_size > 0;
 		stream->reset_timestamps =
 			obs_data_get_bool(settings, "reset_timestamps");
+		stream->allow_overwrite =
+			obs_data_get_bool(settings, "allow_overwrite");
 		stream->cur_size = 0;
 		stream->sent_headers = false;
 	}
@@ -479,14 +481,41 @@ static void signal_failure(struct ffmpeg_muxer *stream)
 	os_atomic_set_bool(&stream->capturing, false);
 }
 
-static void generate_filename(struct ffmpeg_muxer *stream, struct dstr *dst)
+static void find_best_filename(struct dstr *path, bool space)
+{
+	int num = 2;
+
+	if (!os_file_exists(path->array))
+		return;
+
+	const char *ext = strrchr(path->array, '.');
+	if (!ext)
+		return;
+
+	size_t extstart = ext - path->array;
+	struct dstr testpath;
+	dstr_init_copy_dstr(&testpath, path);
+	for (;;) {
+		dstr_resize(&testpath, extstart);
+		dstr_catf(&testpath, space ? " (%d)" : "_%d", num++);
+		dstr_cat(&testpath, ext);
+
+		if (!os_file_exists(testpath.array)) {
+			dstr_free(path);
+			dstr_init_move(path, &testpath);
+			break;
+		}
+	}
+}
+
+static void generate_filename(struct ffmpeg_muxer *stream, struct dstr *dst,
+			      bool overwrite)
 {
 	obs_data_t *settings = obs_output_get_settings(stream->output);
 	const char *dir = obs_data_get_string(settings, "directory");
 	const char *fmt = obs_data_get_string(settings, "format");
 	const char *ext = obs_data_get_string(settings, "extension");
 	bool space = obs_data_get_bool(settings, "allow_spaces");
-	// TODO: allow_overwrite
 
 	char *filename = os_generate_formatted_filename(ext, space, fmt);
 
@@ -502,6 +531,9 @@ static void generate_filename(struct ffmpeg_muxer *stream, struct dstr *dst)
 		os_mkdirs(dst->array);
 		*slash = '/';
 	}
+
+	if (!overwrite)
+		find_best_filename(dst, space);
 
 	bfree(filename);
 	obs_data_release(settings);
@@ -636,7 +668,8 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 
 		os_process_pipe_destroy(stream->pipe);
 
-		generate_filename(stream, &stream->path);
+		generate_filename(stream, &stream->path,
+				  stream->allow_overwrite);
 		info("Changing output file to '%s'", stream->path.array);
 		start_pipe(stream, stream->path.array);
 		if (!stream->pipe) {
@@ -1039,7 +1072,7 @@ static void replay_buffer_save(struct ffmpeg_muxer *stream)
 			      audio_dts_offsets);
 	}
 
-	generate_filename(stream, &stream->path);
+	generate_filename(stream, &stream->path, true);
 
 	os_atomic_set_bool(&stream->muxing, true);
 	stream->mux_thread_joinable = pthread_create(&stream->mux_thread, NULL,
