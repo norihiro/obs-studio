@@ -87,6 +87,9 @@ static void *ffmpeg_mux_create(obs_data_t *settings, obs_output_t *output)
 	if (obs_output_get_flags(output) & OBS_OUTPUT_SERVICE)
 		stream->is_network = true;
 
+	signal_handler_t *sh = obs_output_get_signal_handler(output);
+	signal_handler_add(sh, "void file_changed(string next_file)");
+
 	UNUSED_PARAMETER(settings);
 	return stream;
 }
@@ -671,6 +674,13 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 		generate_filename(stream, &stream->path,
 				  stream->allow_overwrite);
 		info("Changing output file to '%s'", stream->path.array);
+		calldata_t cd = {0};
+		signal_handler_t *sh =
+			obs_output_get_signal_handler(stream->output);
+		calldata_set_string(&cd, "next_file", stream->path.array);
+		signal_handler_signal(sh, "file_changed", &cd);
+		calldata_free(&cd);
+
 		start_pipe(stream, stream->path.array);
 		if (!stream->pipe) {
 			obs_output_set_last_error(

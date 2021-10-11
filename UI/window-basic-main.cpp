@@ -6953,7 +6953,7 @@ void OBSBasic::StreamingStop(int code, QString last_error)
 		SetBroadcastFlowEnabled(auth && auth->broadcastFlow());
 }
 
-void OBSBasic::AutoRemux(QString input)
+void OBSBasic::AutoRemux(QString input, bool no_show)
 {
 	bool autoRemux = config_get_bool(Config(), "Video", "AutoRemux");
 
@@ -6985,7 +6985,8 @@ void OBSBasic::AutoRemux(QString input)
 	output += "mp4";
 
 	OBSRemux *remux = new OBSRemux(QT_TO_UTF8(path), this, true);
-	remux->show();
+	if (!no_show)
+		remux->show();
 	remux->AutoRemux(input, output);
 }
 
@@ -7136,6 +7137,14 @@ void OBSBasic::RecordingStop(int code, QString last_error)
 
 	OnDeactivate();
 	UpdatePause(false);
+}
+
+void OBSBasic::RecordingFileChanged(QString lastRecordingPath)
+{
+	QString str = QTStr("Basic.StatusBar.RecordingSavedTo");
+	ShowStatusBarMessage(str.arg(lastRecordingPath));
+
+	AutoRemux(lastRecordingPath, true);
 }
 
 void OBSBasic::ShowReplayBufferPauseWarning()
