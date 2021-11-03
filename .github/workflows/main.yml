@@ -6,6 +6,7 @@ on:
       - '**.md'
     branches:
       - master
+      - macos-brew-uninstall
     tags:
       - '*'
   pull_request:
