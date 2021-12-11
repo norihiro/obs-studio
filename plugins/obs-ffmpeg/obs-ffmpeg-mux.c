@@ -309,6 +309,35 @@ static void set_file_not_readable_error(struct ffmpeg_muxer *stream,
 	obs_data_release(settings);
 }
 
+inline static void ts_offset_clear(struct ffmpeg_muxer *stream)
+{
+	stream->found_video = false;
+	stream->video_pts_offset = 0;
+
+	for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
+		stream->found_audio[i] = false;
+		stream->audio_dts_offsets[i] = 0;
+	}
+}
+
+inline static void ts_offset_update(struct ffmpeg_muxer *stream,
+				    struct encoder_packet *packet)
+{
+	if (packet->type == OBS_ENCODER_VIDEO) {
+		if (!stream->found_video) {
+			stream->video_pts_offset = packet->pts;
+			stream->found_video = true;
+		}
+		return;
+	}
+
+	if (stream->found_audio[packet->track_idx])
+		return;
+
+	stream->audio_dts_offsets[packet->track_idx] = packet->dts;
+	stream->found_audio[packet->track_idx] = true;
+}
+
 static bool ffmpeg_mux_start(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
@@ -346,12 +375,7 @@ static bool ffmpeg_mux_start(void *data)
 		stream->sent_headers = false;
 	}
 
-	stream->found_video = false;
-	stream->video_pts_offset = 0;
-	for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
-		stream->found_audio[i] = false;
-		stream->audio_dts_offsets[i] = 0;
-	}
+	ts_offset_clear(stream);
 
 	if (!stream->is_network) {
 		/* ensure output path is writable to avoid generic error
@@ -680,6 +704,33 @@ static bool send_new_filename(struct ffmpeg_muxer *stream, const char *filename)
 	return true;
 }
 
+static bool prepare_split_file(struct ffmpeg_muxer *stream,
+			       struct encoder_packet *packet)
+{
+	generate_filename(stream, &stream->path, stream->allow_overwrite);
+	info("Changing output file to '%s'", stream->path.array);
+
+	if (!send_new_filename(stream, stream->path.array)) {
+		warn("Failed to send new file name");
+		return false;
+	}
+
+	calldata_t cd = {0};
+	signal_handler_t *sh = obs_output_get_signal_handler(stream->output);
+	calldata_set_string(&cd, "next_file", stream->path.array);
+	signal_handler_signal(sh, "file_changed", &cd);
+	calldata_free(&cd);
+
+	if (!send_headers(stream))
+		return false;
+
+	stream->cur_size = 0;
+	stream->cur_time = packet->dts_usec;
+	ts_offset_clear(stream);
+
+	return true;
+}
+
 static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 {
 	struct ffmpeg_muxer *stream = data;
@@ -693,33 +744,11 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 		return;
 	}
 
+	bool split_file_ready = false;
 	if (stream->split_file && should_split(stream, packet)) {
-
-		generate_filename(stream, &stream->path,
-				  stream->allow_overwrite);
-		info("Changing output file to '%s'", stream->path.array);
-
-		if (!send_new_filename(stream, stream->path.array)) {
-			warn("Failed to send new file name");
+		if (!prepare_split_file(stream, packet))
 			return;
-		}
-
-		calldata_t cd = {0};
-		signal_handler_t *sh =
-			obs_output_get_signal_handler(stream->output);
-		calldata_set_string(&cd, "next_file", stream->path.array);
-		signal_handler_signal(sh, "file_changed", &cd);
-		calldata_free(&cd);
-
-		stream->cur_size = 0;
-		stream->sent_headers = false;
-
-		stream->found_video = false;
-		stream->video_pts_offset = 0;
-		for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
-			stream->found_audio[i] = false;
-			stream->audio_dts_offsets[i] = 0;
-		}
+		split_file_ready = true;
 	}
 
 	if (!stream->sent_headers) {
@@ -740,18 +769,7 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 	}
 
 	if (stream->split_file && stream->reset_timestamps) {
-		if (packet->type == OBS_ENCODER_VIDEO) {
-			if (!stream->found_video) {
-				stream->video_pts_offset = packet->pts;
-				stream->found_video = true;
-			}
-		} else {
-			if (!stream->found_audio[packet->track_idx]) {
-				stream->audio_dts_offsets[packet->track_idx] =
-					packet->dts;
-				stream->found_audio[packet->track_idx] = true;
-			}
-		}
+		ts_offset_update(stream, packet);
 	}
 
 	write_packet(stream, packet);
