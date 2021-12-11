@@ -799,6 +799,13 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 				return;
 			stream->split_file_ready = true;
 		}
+		else {
+			/* Duplicating packets to both files.
+			 * TODO: Number of duplicated packets is controlled by video's PTS-DTS offset.
+			 * That means this feature does not work if B-frame is not enabled.
+			 */
+			push_back_packet(&stream->mux_packets.da, packet);
+		}
 	} else if (stream->split_file && should_split(stream, packet)) {
 		if (has_audio(stream)) {
 			push_back_packet(&stream->mux_packets, packet);
