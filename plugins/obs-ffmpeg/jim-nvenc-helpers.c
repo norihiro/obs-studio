@@ -52,6 +52,9 @@ bool nv_failed(obs_encoder_t *encoder, NVENCSTATUS err, const char *func,
 
 bool load_nvenc_lib(void)
 {
+	if (nvenc_lib)
+		return true;
+
 #ifdef _WIN32
 	if (sizeof(void *) == 8) {
 		nvenc_lib = os_dlopen("nvEncodeAPI64.dll");
