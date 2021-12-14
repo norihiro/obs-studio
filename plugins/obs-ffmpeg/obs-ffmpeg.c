@@ -221,9 +221,12 @@ static bool vaapi_supported(void)
 }
 #endif
 
-#ifdef _WIN32
 extern void jim_nvenc_load(void);
 extern void jim_nvenc_unload(void);
+
+#ifndef _WIN32
+void jim_nvenc_load(void) {}
+void jim_nvenc_unload(void) {}
 #endif
 
 #if ENABLE_FFMPEG_LOGGING
@@ -264,6 +267,8 @@ bool obs_module_load(void)
 			// the old encoder directly
 			nvenc_encoder_info.caps &= ~OBS_ENCODER_CAP_INTERNAL;
 		}
+#else
+		jim_nvenc_load();
 #endif
 		obs_register_encoder(&nvenc_encoder_info);
 	}
@@ -287,7 +292,7 @@ void obs_module_unload(void)
 	obs_ffmpeg_unload_logging();
 #endif
 
-#ifdef _WIN32
+#ifndef __APPLE__
 	jim_nvenc_unload();
 #endif
 }
