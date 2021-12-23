@@ -262,6 +262,9 @@ struct obs_encoder_info {
 			       uint64_t lock_key, uint64_t *next_key,
 			       struct encoder_packet *packet,
 			       bool *received_packet);
+
+	bool (*encode_texture_available)(void *data,
+					 struct video_scale_info *info);
 };
 
 EXPORT void obs_register_encoder_s(const struct obs_encoder_info *info,

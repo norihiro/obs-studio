@@ -202,7 +202,17 @@ static void add_connection(struct obs_encoder *encoder)
 		struct video_scale_info info = {0};
 		get_video_info(encoder, &info);
 
-		if (gpu_encode_available(encoder)) {
+		bool encode_texture_available;
+		if (encoder->info.encode_texture_available) {
+			encode_texture_available =
+				encoder->info.encode_texture_available(
+					encoder->context.data, &info);
+		} else {
+			encode_texture_available =
+				gpu_encode_available(encoder);
+		}
+
+		if (encode_texture_available) {
 			start_gpu_encode(encoder);
 		} else {
 			start_raw_video(encoder->media, &info, receive_video,
