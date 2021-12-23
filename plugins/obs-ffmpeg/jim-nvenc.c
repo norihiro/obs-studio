@@ -990,6 +990,13 @@ static bool nvenc_encode_tex(void *data, uint32_t handle, int64_t pts,
 	return true;
 }
 
+static bool nvenc_encode_texture_available(void *data,
+					   struct video_scale_info *info)
+{
+	UNUSED_PARAMETER(data);
+	return info->format == VIDEO_FORMAT_NV12;
+}
+
 extern void nvenc_defaults(obs_data_t *settings);
 extern obs_properties_t *nvenc_properties(void *unused);
 
@@ -1029,6 +1036,7 @@ struct obs_encoder_info nvenc_info = {
 	.destroy = nvenc_destroy,
 	.update = nvenc_update,
 	.encode_texture = nvenc_encode_tex,
+	.encode_texture_available = nvenc_encode_texture_available,
 	.get_defaults = nvenc_defaults,
 	.get_properties = nvenc_properties,
 	.get_extra_data = nvenc_extra_data,
