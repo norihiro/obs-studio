@@ -787,6 +787,11 @@ static inline bool ffmpeg_mux_packet(struct ffmpeg_mux *ffm, uint8_t *buf,
 	int idx = get_index(ffm, info);
 	AVPacket packet = {0};
 
+	fprintf(stderr, "packet|codec_type=%s|pts=%d|dts=%d\n",
+			info->type==FFM_PACKET_VIDEO ? "video" : "audio",
+			(int)info->pts,
+			(int)info->dts );
+
 	/* The muxer might not support video/audio, or multiple audio tracks */
 	if (idx == -1) {
 		return true;
