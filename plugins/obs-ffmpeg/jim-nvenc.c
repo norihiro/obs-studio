@@ -176,29 +176,17 @@ struct nv_texture {
 
 #ifdef _WIN32
 
-static bool complete_texture(struct nvenc_data *enc, struct nv_texture *nvtex,
-			     bool nv12)
+static bool nv_texture_init(struct nvenc_data *enc, struct nv_texture *nvtex,
+			    bool nv12)
 {
+	nvtex->res = NULL;
+	nvtex->tex = NULL;
+	nvtex->is_nv12 = false;
+	nvtex->mapped_res = NULL;
+
 	ID3D11Device *device = enc->device;
 	ID3D11Texture2D *tex;
 	HRESULT hr;
-
-	if (nvtex->is_nv12 == nv12 && nvtex->tex) {
-		return true;
-	}
-
-	if (nvtex->mapped_res) {
-		nv.nvEncUnmapInputResource(enc->session, nvtex->mapped_res);
-		nvtex->mapped_res = NULL;
-	}
-	if (nvtex->res) {
-		nv.nvEncUnregisterResource(enc->session, nvtex->res);
-		nvtex->res = NULL;
-	}
-	if (nvtex->tex) {
-		nvtex->tex->lpVtbl->Release(nvtex->tex);
-		nvtex->tex = NULL;
-	}
 
 	D3D11_TEXTURE2D_DESC desc = {0};
 	desc.Width = enc->cx;
@@ -233,17 +221,8 @@ static bool complete_texture(struct nvenc_data *enc, struct nv_texture *nvtex,
 	nvtex->res = res.registeredResource;
 	nvtex->tex = tex;
 	nvtex->is_nv12 = nv12;
-	return true;
-}
-
-static bool nv_texture_init(struct nvenc_data *enc, struct nv_texture *nvtex,
-			    bool nv12)
-{
-	nvtex->res = NULL;
-	nvtex->tex = NULL;
-	nvtex->is_nv12 = false;
 	nvtex->mapped_res = NULL;
-	return complete_texture(enc, nvtex, nv12);
+	return true;
 }
 
 #else /* defined(_WIN32) */
@@ -300,33 +279,19 @@ static bool setup_texture(GLuint tex, uint32_t width, uint32_t height,
 
 #undef check_error
 
-static bool complete_texture(struct nvenc_data *enc, struct nv_texture *nvtex,
-			     bool nv12)
+static bool nv_texture_init(struct nvenc_data *enc, struct nv_texture *nvtex,
+			    bool nv12)
 {
+	nvtex->res = NULL;
+	nvtex->tex = 0;
+	nvtex->is_nv12 = false;
+	nvtex->mapped_res = NULL;
+
+	if (gl_error()) {
+		goto gl_enter_err;
+	}
+
 	GLuint tex;
-
-	if (nvtex->is_nv12 == nv12 && nvtex->res) {
-		return true;
-	}
-
-	if (gl_error()) {
-		goto gl_enter_err;
-	}
-
-	if (nvtex->mapped_res) {
-		nv.nvEncUnmapInputResource(enc->session, nvtex->mapped_res);
-		nvtex->mapped_res = NULL;
-	}
-	if (nvtex->res) {
-		nv.nvEncUnregisterResource(enc->session, nvtex->res);
-		nvtex->res = NULL;
-		glDeleteTextures(1, &nvtex->tex);
-	}
-
-	if (gl_error()) {
-		goto gl_enter_err;
-	}
-
 	glGenTextures(1, &tex);
 	if (gl_error()) {
 		goto gen_tex_err;
@@ -354,6 +319,7 @@ static bool complete_texture(struct nvenc_data *enc, struct nv_texture *nvtex,
 	nvtex->res = res.registeredResource;
 	nvtex->tex = tex;
 	nvtex->is_nv12 = nv12;
+	nvtex->mapped_res = NULL;
 	return true;
 
 reg_tex_err:
@@ -362,16 +328,6 @@ setup_tex_err:
 gen_tex_err:
 gl_enter_err:
 	return false;
-}
-
-static bool nv_texture_init(struct nvenc_data *enc, struct nv_texture *nvtex,
-			    bool nv12)
-{
-	nvtex->res = NULL;
-	nvtex->tex = 0;
-	nvtex->is_nv12 = false;
-	nvtex->mapped_res = NULL;
-	return complete_texture(enc, nvtex, nv12);
 }
 
 #endif /* defined(_WIN32) */
@@ -1166,15 +1122,15 @@ static bool nvenc_encode_tex(void *data, struct encoder_texture *tex,
 	bs = &enc->bitstreams.array[enc->next_bitstream];
 	nvtex = &enc->textures.array[enc->next_bitstream];
 
+	if (nvtex->is_nv12 != use_nv12) {
+		error("Encode failed: wrong texture format");
+		*next_key = lock_key;
+		return false;
+	}
+
 #ifndef _WIN32
 	obs_enter_graphics();
 #endif
-
-	if (!complete_texture(enc, nvtex, use_nv12)) {
-		error("Encode failed: could not complete texture");
-		*next_key = lock_key;
-		goto error;
-	}
 
 #ifdef _WIN32
 	input_tex = get_tex_from_handle(enc, tex->handle, &km);
