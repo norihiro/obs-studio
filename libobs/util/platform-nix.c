@@ -185,7 +185,7 @@ void os_sleep_ms(uint32_t duration)
 
 #if !defined(__APPLE__)
 
-uint64_t os_gettime_ns(void)
+uint64_t os_gettime_ns_unadjusted(void)
 {
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);

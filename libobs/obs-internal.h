@@ -651,11 +651,14 @@ struct obs_source {
 	volatile uint64_t timing_adjust;
 	uint64_t resample_offset;
 	uint64_t last_audio_ts;
+	uint64_t last_audio_os_time;
 	uint64_t next_audio_ts_min;
 	uint64_t next_audio_sys_ts_min;
 	uint64_t last_frame_ts;
 	uint64_t last_sys_timestamp;
 	bool async_rendered;
+	int master_clock_count;
+	uint64_t master_clock_error;
 
 	/* audio */
 	bool audio_failed;

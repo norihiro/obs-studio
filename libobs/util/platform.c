@@ -26,6 +26,7 @@
 #include "utf8.h"
 #include "dstr.h"
 #include "obs.h"
+#include "threading.h"
 
 FILE *os_wfopen(const wchar_t *path, const char *mode)
 {
@@ -806,4 +807,63 @@ char *os_generate_formatted_filename(const char *extension, bool space,
 		dstr_mid(&sf, &sf, 0, 255);
 
 	return sf.array;
+}
+
+extern uint64_t os_gettime_ns_unadjusted(void);
+
+static uint64_t time_offset = 0;
+static long time_drift = 0; // >0: advance, <0: make slower
+
+int64_t obs_debug_timedrift_offset()
+{
+	return time_offset;
+}
+
+void obs_set_timedrift_ppb(long t)
+{
+	os_atomic_set_long(&time_drift, t);
+}
+
+long obs_add_timedrift_ppb(long t)
+{
+	t += time_drift;
+	os_atomic_set_long(&time_drift, t);
+	return time_drift;
+}
+
+uint64_t os_gettime_ns(void)
+{
+	static uint64_t t1_last, t2_last;
+	static int64_t r_accum;
+	static bool time_initialized = false;
+
+	// t1: original OS time [ns]
+	const uint64_t t1 = os_gettime_ns_unadjusted();
+
+	if(!time_initialized) {
+		t1_last = t1;
+		r_accum = 0;
+		time_initialized = true;
+		return t2_last = t1 + time_offset;;
+	}
+
+	int64_t t1_adv = t1 - t1_last;
+	t1_last = t1;
+
+	if(t1_adv) {
+		// expecting os_gettime_ns is called frequently enough to avoid overflow here.
+		r_accum += t1_adv * os_atomic_load_long(&time_drift);
+		int64_t d = r_accum / (1024*1024*1024);
+		r_accum   = r_accum % (1024*1024*1024);
+		time_offset += d;
+	}
+
+	// t2: drifted time [ns]
+	uint64_t t2 = t1 + time_offset;
+	int64_t t2diff = t2 - t2_last;
+	if(t2diff < 0) {
+		return t2_last;
+	}
+
+	return t2_last = t2;
 }

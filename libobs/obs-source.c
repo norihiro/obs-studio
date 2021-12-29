@@ -179,6 +179,8 @@ static bool obs_source_init(struct obs_source *source)
 	source->sync_offset = 0;
 	source->balance = 0.5f;
 	source->audio_active = true;
+	source->master_clock_count = 0;
+	source->master_clock_error = 0;
 	pthread_mutex_init_value(&source->filter_mutex);
 	pthread_mutex_init_value(&source->async_mutex);
 	pthread_mutex_init_value(&source->audio_mutex);
@@ -1414,6 +1416,35 @@ static inline bool source_muted(obs_source_t *source, uint64_t os_time)
 	return !source->enabled || source->user_muted ||
 	       (source->push_to_mute_enabled && push_to_mute_active) ||
 	       (source->push_to_talk_enabled && !push_to_talk_active);
+}
+
+static void adjust_master_clock(obs_source_t *source, int64_t d_src)
+{
+	// TODO: there is a lot of fluctuation on the arrival time. Can I make averaging for the initialization?
+	uint64_t os_time = os_gettime_ns();
+	int64_t d_ost = os_time - source->last_audio_os_time;
+	source->last_audio_os_time = os_time;
+	source->master_clock_error += d_src - d_ost;
+	// master_clock_error is equivalent to (src_time - os_time)
+	int64_t d = source->master_clock_error;
+	// ignore first 4 seconds
+	if(source->master_clock_count > (4*1000)) {
+		if(d && -(20*1000*1024)<d && d<(20*1000*1024)) {
+			static int cnt = 0;
+			void obs_set_timedrift_ppb(long);
+			int64_t obs_debug_timedrift_offset();
+			long x = d/256; obs_set_timedrift_ppb(x);
+			if(!(cnt & (cnt-1)) || !(cnt&8191)) {
+				blog(LOG_WARNING, "obs-source: setting master clock drift to %+.2f ppm, os_time=%ld, d_src=%+ld d_ost=%+ld offset=%f us, cnt=%d",
+						(double)x*(1e6/1024/1024/1024),
+						(long)os_time, (long)d_src, (long)d_ost, (double)obs_debug_timedrift_offset()*1e-3, cnt );
+			}
+			cnt ++;
+		}
+	} else {
+		source->master_clock_count += d_src / (1024 * 1024);
+		source->master_clock_error = 0;
+	}
 }
 
 static void source_output_audio_data(obs_source_t *source,
@@ -3460,6 +3491,11 @@ void obs_source_output_audio(obs_source_t *source,
 	size_t channels = get_audio_planes(audio.format, audio.speakers);
 	for (size_t i = channels; i < MAX_AUDIO_CHANNELS; i++)
 		audio.data[i] = NULL;
+
+	if(source->flags & OBS_SOURCE_FLAG_MASTER_CLOCK) {
+		int64_t d_src = conv_frames_to_time(audio.samples_per_sec, audio.frames);
+		adjust_master_clock(source, d_src);
+	}
 
 	process_audio(source, &audio);
 
