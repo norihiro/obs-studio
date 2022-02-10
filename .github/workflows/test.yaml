@@ -33,7 +33,7 @@ jobs:
       - name: Build executable
         run: |
           Invoke-ps2exe `
-            -noOutput -noVisualStyles -noConsole`
+            -noOutput -noVisualStyles -noConsole `
             -inputFile .\CI\steam\run_as_admin.ps1 `
             -version ${{ env.VERSION }} `
             -title "RunAsAdmin" `
