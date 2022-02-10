@@ -117,16 +117,27 @@ jobs:
         echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
         echo "DESC=${DESC}" >> $GITHUB_ENV
 
+    - name: 'Check if nightly has already been uploaded'
+      if: github.event_name != 'release'
+      id: cache-check
+      uses: actions/cache@v2
+      with:
+        path: ${{ github.workspace }}/steam/release.vdf
+        key: ${{ env.BRANCH }}-{{ env.DESC }}
+
     - name: Setup steamcmd
+      if: steps.cache-check.outputs.cache-hit != 'true'
       uses: CyberAndrii/setup-steamcmd@v1
 
     - name: Generate Steam auth code
+      if: steps.cache-check.outputs.cache-hit != 'true'
       id: steam-totp
       uses: CyberAndrii/steam-totp@v1
       with:
         shared_secret: ${{ secrets.STEAM_GUARD_SEED }}
 
     - name: Upload to Steam
+      if: steps.cache-check.outputs.cache-hit != 'true'
       run: |
         cd steam
 
@@ -151,3 +162,10 @@ jobs:
         echo "::group::Upload to Steam"
         steamcmd +login ${{ secrets.STEAM_USER }} ${{ secrets.STEAM_PASSWORD }} ${{ steps.steam-totp.outputs.code }} +run_app_build $(pwd)/release.vdf +quit
         echo "::endgroup::"
+
+    - name: 'Upload build logs'
+      if: steps.cache-check.outputs.cache-hit != 'true'
+      uses: actions/upload-artifact@v2
+      with:
+        name: steam-build-logs
+        path: ${{ github.workspace }}/steam/build/*.log
