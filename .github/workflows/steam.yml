@@ -11,9 +11,40 @@ on:
   #       description: 'Release to upload'
   #       required: true
   schedule:
-    - cron: '0 0,12 * * *'
+  - cron: 0 0,12 * * *
 
 jobs:
+  build_elevator:
+    name: Build Elevator exe
+    runs-on: windows-2019
+    env:
+      VERSION: 0.0.1
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v2
+
+    - name: Install ps2exe
+      run: |
+        Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted
+        Install-Module -Name ps2exe
+      shell: powershell
+
+    - name: Build executable
+      run: |
+        Invoke-ps2exe `
+          -noOutput -noVisualStyles -noConsole `
+          -inputFile .\CI\steam\run_as_admin.ps1 `
+          -version ${{ env.VERSION }} `
+          -title "RunAsAdmin" `
+          -outputFile "run_as_admin.exe"
+      shell: powershell
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: run_as_admin.zip
+        path: run_as_admin.exe
+
   upload:
     name: Build and Upload
     runs-on: ubuntu-20.04
@@ -22,7 +53,19 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
       with:
-        path: "source"
+        path: source
+
+    - name: Download elevator binary
+      uses: actions/download-artifact@v2
+
+    - name: Setup 7zip
+      run: |
+        mkdir 7z
+        (
+            cd 7z
+            curl -s https://www.7-zip.org/a/7z2107-linux-x64.tar.xz | tar -xJ
+            echo "$(pwd)" >> $GITHUB_PATH
+        )
 
     - name: Download and extract release assets
       if: github.event_name == 'release'
@@ -33,13 +76,13 @@ jobs:
         else
           BRANCH="staging"
         fi
-        
+
         curl -s "${{ github.event.release.assets_url }}" -o assets.json
         WIN_ASSET_URL=$(jq -r '.[] | select(.name|test(".*x64.zip")) .browser_download_url' assets.json)
         MAC_ASSET_URL=$(jq -r '.[] | select(.name|test(".*.dmg")) .browser_download_url' assets.json)
         wget "${WIN_ASSET_URL}" -O windows.zip
         wget "${MAC_ASSET_URL}" -O mac.dmg
-        
+
         mkdir steam
         (
           cd steam
@@ -52,24 +95,23 @@ jobs:
           echo "::endgroup::"
           
           echo "::group::Extract macOS"
-          # This is crap and should be replaced before going into production.
-          cp ../source/CI/steam/7zzs .
-          chmod +x 7zzs
-          
+
           echo "Extracting DMG and moving over .app ..."
           mkdir steam-macos
+
           # ignore exit code from 7zip
-          ./7zzs x ../mac.dmg -otmp || true
+          7zzs x ../mac.dmg -otmp || true
+
           mv tmp/*/OBS.app steam-macos
           rm -rf tmp/
           echo "::endgroup::"
         )
         rm windows.zip mac.dmg
-        
+
         # set env variables for subsequent steps
         echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
         echo "DESC=${DESC}" >> $GITHUB_ENV
-    
+
     - name: Download and extract nightly build
       if: github.event_name != 'release'
       run: |
@@ -78,14 +120,14 @@ jobs:
         curl -s "https://api.github.com/repos/obsproject/obs-studio/actions/workflows/583765/runs?per_page=10&event=push&status=completed&branch=master" -o builds.json
         ARTIFACTS_URL=$(jq -r '.workflow_runs[] | select(.conclusion == "success") .artifacts_url' builds.json | head -n1)
         DESC="nightly-g$(jq -r '.workflow_runs[] | select(.conclusion == "success") .head_sha' builds.json | head -n1 | cut -c1-7)"
-        
+
         curl -s $ARTIFACTS_URL -o artifacts.json
         WIN_ARTIFACT_ID=$(jq -r '.artifacts[] | select(.name|test(".*win64")) .id' artifacts.json)
         MAC_ARTIFACT_ID=$(jq -r '.artifacts[] | select(.name|test(".*dmg")) .id' artifacts.json)
-        
+
         wget "https://obsbot.rodney.io/artifacts/${WIN_ARTIFACT_ID}" -O windows.zip
         wget "https://obsbot.rodney.io/artifacts/${MAC_ARTIFACT_ID}" -O mac.dmg.zip
-        
+
         mkdir steam
         (
           cd steam
@@ -98,26 +140,25 @@ jobs:
           echo "::endgroup::"
           
           echo "::group::Extract macOS"
-          # This is crap and should be replaced before going into production.
-          cp ../source/CI/steam/7zzs .
-          chmod +x 7zzs
-          
+
           echo "Extracting DMG and moving over .app ..."
           mkdir steam-macos
-          # ignore exit code from 7zip
+
           unzip ../mac.dmg.zip
-          ./7zzs x *.dmg -otmp || true
+          # ignore exit code from 7zip
+          7zzs x *.dmg -otmp || true
+
           mv tmp/*/OBS.app steam-macos
           rm -rf tmp/ *.dmg
           echo "::endgroup::"
         )
         rm windows.zip mac.dmg.zip
-        
+
         # set env variables for subsequent steps
         echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
         echo "DESC=${DESC}" >> $GITHUB_ENV
 
-    - name: 'Check if nightly has already been uploaded'
+    - name: Check if nightly has already been uploaded
       if: github.event_name != 'release'
       id: cache-check
       uses: actions/cache@v2
@@ -145,6 +186,10 @@ jobs:
 
         echo "Copying scripts and creating disable_updater sentinel..."
         cp -r ../source/CI/steam/scripts steam-windows/scripts
+        # copy over previously built executable
+        unzip ../run_as_admin.zip
+        cp run_as_admin.exe steam-windows/scripts
+        # sentinel file to disable updater
         touch steam-windows/disable_updater
         echo "::endgroup::"
 
@@ -163,7 +208,7 @@ jobs:
         steamcmd +login ${{ secrets.STEAM_USER }} ${{ secrets.STEAM_PASSWORD }} ${{ steps.steam-totp.outputs.code }} +run_app_build $(pwd)/release.vdf +quit
         echo "::endgroup::"
 
-    - name: 'Upload build logs'
+    - name: Upload build logs
       if: steps.cache-check.outputs.cache-hit != 'true'
       uses: actions/upload-artifact@v2
       with:
