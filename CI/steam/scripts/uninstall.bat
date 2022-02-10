@@ -12,12 +12,12 @@ goto checkAdmin
 	)
 
 :clearRegistry
-    reg delete "HKLM\SOFTWARE\WOW6432Node\OBS Studio" /f
-    reg delete "HKLM\SOFTWARE\OBS Studio" /f
+	reg delete "HKLM\SOFTWARE\WOW6432Node\OBS Studio" /f
+	reg delete "HKLM\SOFTWARE\OBS Studio" /f
 
 :uninstallDLLs
-    regsvr32.exe /u /s "%~dp0..\data\obs-plugins\win-dshow\obs-virtualcam-module32.dll"
-    regsvr32.exe /u /s "%~dp0..\data\obs-plugins\win-dshow\obs-virtualcam-module64.dll"
+	regsvr32.exe /u /s %1\data\obs-plugins\win-dshow\obs-virtualcam-module32.dll
+	regsvr32.exe /u /s %1\data\obs-plugins\win-dshow\obs-virtualcam-module64.dll
 
 :endSuccess
 	echo Virtual Cam uninstalled!

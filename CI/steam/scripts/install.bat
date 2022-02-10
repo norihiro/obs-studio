@@ -1,6 +1,8 @@
 @echo off
 @cd /d "%~dp0"
+
 goto checkAdmin
+
 
 :checkAdmin
 	net session >nul 2>&1
@@ -12,10 +14,8 @@ goto checkAdmin
 	)
 
 :writeRegistry
-    call :ResolvePath "%~dp0..\"
-    SET installdir=%RETVAL%
-    reg add "HKLM\SOFTWARE\WOW6432Node\OBS Studio" /f /t REG_SZ /d "%installdir%"
-    reg add "HKLM\SOFTWARE\OBS Studio" /f /t REG_SZ /d "%installdir%"
+	reg add "HKLM\SOFTWARE\WOW6432Node\OBS Studio" /f /t REG_SZ /d %1
+	reg add "HKLM\SOFTWARE\OBS Studio" /f /t REG_SZ /d %1
 
 :checkDLL
 	echo Checking for 32-bit Virtual Cam registration...
@@ -42,7 +42,7 @@ goto checkAdmin
 
 :install32DLL
 	echo Installing 32-bit Virtual Cam...
-    regsvr32.exe /i /s "%~dp0..\data\obs-plugins\win-dshow\obs-virtualcam-module32.dll"
+	regsvr32.exe /i /s %1\data\obs-plugins\win-dshow\obs-virtualcam-module32.dll
 	reg query "HKLM\SOFTWARE\Classes\WOW6432Node\CLSID\{A3FCE0F5-3493-419F-958A-ABA1250EC20B}" >nul 2>&1
 	if %errorLevel% == 0 (
 		echo 32-bit Virtual Cam successfully installed
@@ -56,7 +56,7 @@ goto checkAdmin
 
 :install64DLL
 	echo Installing 64-bit Virtual Cam...
-    regsvr32.exe /i /s "%~dp0..\data\obs-plugins\win-dshow\obs-virtualcam-module64.dll"
+	regsvr32.exe /i /s %1\data\obs-plugins\win-dshow\obs-virtualcam-module64.dll
 	reg query "HKLM\SOFTWARE\Classes\CLSID\{A3FCE0F5-3493-419F-958A-ABA1250EC20B}" >nul 2>&1
 	if %errorLevel% == 0 (
 		echo 64-bit Virtual Cam successfully installed
@@ -69,16 +69,12 @@ goto checkAdmin
 	)
 
 :endFail
-    echo Something failed, please report this on the OBS Discord or Forums!
-    pause
+	echo Something failed, please report this on the OBS Discord or Forums!
+	goto end
 
 :endSuccess
 	echo Virtual Cam installed!
 	echo.
 
 :end
-    exit
-
-:ResolvePath
-    SET RETVAL=%~f1
-    exit /b
+	exit
