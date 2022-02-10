@@ -43,7 +43,7 @@ jobs:
             unzip ../../windows.zip
           )
           
-          cp -r source/CI/steam/scripts steam-windows/scripts
+          cp -r ../source/CI/steam/scripts steam-windows/scripts
           touch steam-windows/disable_updater
           echo "::endgroup::"
 
@@ -55,7 +55,7 @@ jobs:
           # echo "::endgroup::"
           
           echo "::group::Preparing build file"
-          cp source/CI/steam/obs_build.vdf release.vdf
+          cp ../source/CI/steam/obs_build.vdf release.vdf
           echo "::endgroup::"
 
           echo "::group::Upload to Steam"
