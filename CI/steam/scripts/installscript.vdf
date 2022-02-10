@@ -1,0 +1,25 @@
+"InstallScript"
+{
+    "Run Process"
+    {
+        "install"
+        {
+            "Process 1" "scripts\run_as_admin.exe"
+            "Command 1" "scripts\install.bat"
+        }
+    }
+    
+    "Run Process On Uninstall"
+    {
+        "uninstall"
+        {
+            "Process 1" "scripts\run_as_admin.exe"
+            "Command 1" "scripts\uninstall.bat"
+        }
+    }
+    
+    "Firewall"
+    {
+        "OBS Studio" "%INSTALLDIR%\\bin\\64bit\\obs64.exe"
+    }
+}

@@ -1,0 +1,64 @@
+name: Steam Upload
+
+on:
+  release:
+    types:
+    - published
+
+jobs:
+  upload:
+    name: Build and Upload
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        path: "source"
+
+    - name: Download release assets
+      run: |
+        WIN_ASSET_URL=$(curl -s "${{ github.event.release.assets_url }}" | jq -r '.[] | select(.name|test(".*x64.zip")) .browser_download_url')
+        wget "${WIN_ASSET_URL}" -O windows.zip
+
+    - name: Setup steamcmd
+      uses: CyberAndrii/setup-steamcmd@v1
+
+    - name: Generate Steam auth code
+      id: steam-totp
+      uses: CyberAndrii/steam-totp@v1
+      with:
+        shared_secret: ${{ secrets.STEAM_GUARD_SEED }}
+
+    - name: Upload to Steam
+      run: |
+        mkdir steam
+        (
+          cd steam
+
+          echo "::group::Prepare Win64"
+          mkdir steam-windows
+          (
+            cd steam-windows
+            unzip ../../windows.zip
+          )
+          
+          cp -r source/CI/steam/scripts steam-windows/scripts
+          touch steam-windows/disable_updater
+          echo "::endgroup::"
+
+          # echo "::group::Prepare macOS"
+          # mkdir steam-macos
+          # (
+          # )
+          # touch steam-macos/OBS.app/Contents/disable_updater
+          # echo "::endgroup::"
+          
+          echo "::group::Preparing build file"
+          cp source/CI/steam/obs_build.vdf release.vdf
+          echo "::endgroup::"
+
+          echo "::group::Upload to Steam"
+          steamcmd +login ${{ secrets.STEAM_USER }} ${{ secrets.STEAM_PASSWORD }} ${{ steps.steam-totp.outputs.code }} +run_app_build $(pwd)/release.vdf +quit
+          echo "::endgroup::"
+        )
