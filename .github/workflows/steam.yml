@@ -137,6 +137,8 @@ jobs:
 
         echo "::group::Preparing build file"
         sed 's/@@DESC@@/${DESC}/;s/@@BRANCH@@/'${BRANCH}'/' ../source/CI/steam/obs_build.vdf > release.vdf
+        echo "Generated file:"
+        cat release.vdf
         echo "::endgroup::"
 
         echo "::group::Upload to Steam"
