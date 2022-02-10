@@ -18,8 +18,11 @@ jobs:
 
     - name: Download release assets
       run: |
-        WIN_ASSET_URL=$(curl -s "${{ github.event.release.assets_url }}" | jq -r '.[] | select(.name|test(".*x64.zip")) .browser_download_url')
+        curl -s "${{ github.event.release.assets_url }}" -o assets.json
+        WIN_ASSET_URL=$(jq -r '.[] | select(.name|test(".*x64.zip")) .browser_download_url' assets.json)
+        MAC_ASSET_URL=$(jq -r '.[] | select(.name|test(".*.dmg")) .browser_download_url' assets.json)
         wget "${WIN_ASSET_URL}" -O windows.zip
+        wget "${MAC_ASSET_URL}" -O mac.dmg
 
     - name: Setup steamcmd
       uses: CyberAndrii/setup-steamcmd@v1
@@ -42,20 +45,37 @@ jobs:
             cd steam-windows
             unzip ../../windows.zip
           )
-          
+
+          echo "Copying scripts and creating disable_updater sentinel..."
           cp -r ../source/CI/steam/scripts steam-windows/scripts
           touch steam-windows/disable_updater
           echo "::endgroup::"
 
-          # echo "::group::Prepare macOS"
-          # mkdir steam-macos
-          # (
-          # )
-          # touch steam-macos/OBS.app/Contents/disable_updater
-          # echo "::endgroup::"
-          
+          echo "::group::Prepare macOS"
+
+          # This is crap and should be replaced before going into production.
+          cp ../source/CI/steam/7zss .
+          chmod +x 7zss
+
+          echo "Extracting DMG and copying over .app ..."
+          mkdir steam-macos
+          ../7zss x ../mac.dmg -otmp
+          mv tmp/*/OBS.app steam-macos
+          rm -rf tmp/
+
+          echo "Creating disable_updater sentinel file"
+          touch steam-macos/OBS.app/Contents/disable_updater
+          echo "::endgroup::"
+
           echo "::group::Preparing build file"
-          cp ../source/CI/steam/obs_build.vdf release.vdf
+
+          if [ "${{ github.event.release.prerelease }}" = "true" ]; then
+            BRANCH="beta"
+          else
+            BRANCH="staging"
+          fi
+
+          sed 's/@@DESC@@/${{ github.event.release.tag_name }}/;s/@@BRANCH@@/'${BRANCH}'/' ../source/CI/steam/obs_build.vdf > release.vdf
           echo "::endgroup::"
 
           echo "::group::Upload to Steam"

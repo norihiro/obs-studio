@@ -1,13 +1,12 @@
 "AppBuild"
 {
 	"AppID" "1905180"
-	// ToDo replace this with something more meaningful
-	"Desc" "GitHub CI Upload"
+	"Desc" "GitHub CI - @@DESC@@"
 
 	"ContentRoot" "./"
 	"BuildOutput" "build/"
 	
-	"SetLive" "staging"
+	"SetLive" "@@BRANCH@@"
 
 	"Depots"
 	{
@@ -23,15 +22,15 @@
 			}
 		}
 		
-		// "1905182" // Mac
-	 	// {
-		//   "ContentRoot" "./steam-macos"
-		//	"FileMapping"
-		//	{
-		//		"LocalPath" "*"
-		//		"DepotPath" "."
-		//		"recursive" "1"
-		//	}
-		// }
+		"1905182" // Mac
+	 	{
+			"ContentRoot" "./steam-macos"
+			"FileMapping"
+			{
+				"LocalPath" "*"
+				"DepotPath" "."
+				"recursive" "1"
+			}
+		}
 	}
 }
