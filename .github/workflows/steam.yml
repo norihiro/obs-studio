@@ -42,7 +42,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
-        name: run_as_admin.zip
+        name: run_as_admin
         path: run_as_admin.exe
 
   upload:
@@ -51,13 +51,11 @@ jobs:
     needs: build_elevator
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-      with:
-        path: source
-
     - name: Download elevator binary
       uses: actions/download-artifact@v2
+
+    - name: Display structure of downloaded files
+      run: ls -R
 
     - name: Setup 7zip
       run: |
@@ -67,6 +65,11 @@ jobs:
             curl -s https://www.7-zip.org/a/7z2107-linux-x64.tar.xz | tar -xJ
             echo "$(pwd)" >> $GITHUB_PATH
         )
+
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        path: source
 
     - name: Download and extract release assets
       if: github.event_name == 'release'
@@ -188,8 +191,7 @@ jobs:
         echo "Copying scripts and creating disable_updater sentinel..."
         cp -r ../source/CI/steam/scripts steam-windows/scripts
         # copy over previously built executable
-        unzip ../run_as_admin.zip
-        cp run_as_admin.exe steam-windows/scripts
+        cp ../run_as_admin.exe steam-windows/scripts
         # sentinel file to disable updater
         touch steam-windows/disable_updater
         echo "::endgroup::"
