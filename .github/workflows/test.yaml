@@ -1,0 +1,47 @@
+name: run_as_admin build test
+
+on:
+  workflow_dispatch:
+  push:
+  release:
+
+# temp workaround, because github actions suck...
+env:
+  VERSION: 0.0.1
+
+jobs:
+  build:
+    runs-on: windows-2019
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v2
+
+      - name: Print Variables
+        run: |
+          echo "github.head_ref: '${{ github.head_ref }}'"
+          echo "github.head_sha: '${{ github.head_sha }}'"
+          echo "github.ref_name: '${{ github.ref_name }}'"
+          echo "env.VERSION: '${{ env.VERSION }}'"
+        shell: powershell
+
+      - name: Install from PSGallery
+        run: |
+          Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted
+          Install-Module -Name ps2exe
+        shell: powershell
+
+      - name: Build executable
+        run: |
+          Invoke-ps2exe `
+            -noOutput -noVisualStyles -noConsole`
+            -inputFile .\CI\steam\run_as_admin.ps1 `
+            -version ${{ env.VERSION }} `
+            -title "RunAsAdmin" `
+            -outputFile "run_as_admin.exe"
+        shell: powershell
+
+      - name: Artifact Production Build
+        uses: actions/upload-artifact@v2
+        with:
+          name: run_as_admin.exe.zip
+          path: run_as_admin.exe
