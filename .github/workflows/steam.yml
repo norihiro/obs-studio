@@ -16,13 +16,39 @@ jobs:
       with:
         path: "source"
 
-    - name: Download release assets
+    - name: Download and extract release assets
       run: |
         curl -s "${{ github.event.release.assets_url }}" -o assets.json
         WIN_ASSET_URL=$(jq -r '.[] | select(.name|test(".*x64.zip")) .browser_download_url' assets.json)
         MAC_ASSET_URL=$(jq -r '.[] | select(.name|test(".*.dmg")) .browser_download_url' assets.json)
         wget "${WIN_ASSET_URL}" -O windows.zip
         wget "${MAC_ASSET_URL}" -O mac.dmg
+        
+        mkdir steam
+        (
+          cd steam
+          echo "::group::Extract Win64"
+          mkdir steam-windows
+          (
+            cd steam-windows
+            unzip ../../windows.zip
+          )
+          echo "::endgroup::"
+          
+          echo "::group::Extract macOS"
+          # This is crap and should be replaced before going into production.
+          cp ../source/CI/steam/7zzs .
+          chmod +x 7zzs
+          
+          echo "Extracting DMG and moving over .app ..."
+          mkdir steam-macos
+          ./7zzs x ../mac.dmg -otmp
+          mv tmp/*/OBS.app steam-macos
+          rm -rf tmp/
+          echo "::endgroup::"
+        )
+        
+        rm windows.zip mac.dmg
 
     - name: Setup steamcmd
       uses: CyberAndrii/setup-steamcmd@v1
@@ -35,50 +61,31 @@ jobs:
 
     - name: Upload to Steam
       run: |
-        mkdir steam
-        (
-          cd steam
+        cd steam
 
-          echo "::group::Prepare Win64"
-          mkdir steam-windows
-          (
-            cd steam-windows
-            unzip ../../windows.zip
-          )
+        echo "::group::Prepare Win64"
 
-          echo "Copying scripts and creating disable_updater sentinel..."
-          cp -r ../source/CI/steam/scripts steam-windows/scripts
-          touch steam-windows/disable_updater
-          echo "::endgroup::"
+        echo "Copying scripts and creating disable_updater sentinel..."
+        cp -r ../source/CI/steam/scripts steam-windows/scripts
+        touch steam-windows/disable_updater
+        echo "::endgroup::"
 
-          echo "::group::Prepare macOS"
+        echo "::group::Prepare macOS"
+        echo "Creating disable_updater sentinel file"
+        touch steam-macos/OBS.app/Contents/disable_updater
+        echo "::endgroup::"
 
-          # This is crap and should be replaced before going into production.
-          cp ../source/CI/steam/7zzs .
-          chmod +x 7zzs
+        echo "::group::Preparing build file"
 
-          echo "Extracting DMG and copying over .app ..."
-          mkdir steam-macos
-          ../7zzs x ../mac.dmg -otmp
-          mv tmp/*/OBS.app steam-macos
-          rm -rf tmp/
+        if [ "${{ github.event.release.prerelease }}" = "true" ]; then
+          BRANCH="beta"
+        else
+          BRANCH="staging"
+        fi
 
-          echo "Creating disable_updater sentinel file"
-          touch steam-macos/OBS.app/Contents/disable_updater
-          echo "::endgroup::"
+        sed 's/@@DESC@@/${{ github.event.release.tag_name }}/;s/@@BRANCH@@/'${BRANCH}'/' ../source/CI/steam/obs_build.vdf > release.vdf
+        echo "::endgroup::"
 
-          echo "::group::Preparing build file"
-
-          if [ "${{ github.event.release.prerelease }}" = "true" ]; then
-            BRANCH="beta"
-          else
-            BRANCH="staging"
-          fi
-
-          sed 's/@@DESC@@/${{ github.event.release.tag_name }}/;s/@@BRANCH@@/'${BRANCH}'/' ../source/CI/steam/obs_build.vdf > release.vdf
-          echo "::endgroup::"
-
-          echo "::group::Upload to Steam"
-          steamcmd +login ${{ secrets.STEAM_USER }} ${{ secrets.STEAM_PASSWORD }} ${{ steps.steam-totp.outputs.code }} +run_app_build $(pwd)/release.vdf +quit
-          echo "::endgroup::"
-        )
+        echo "::group::Upload to Steam"
+        steamcmd +login ${{ secrets.STEAM_USER }} ${{ secrets.STEAM_PASSWORD }} ${{ steps.steam-totp.outputs.code }} +run_app_build $(pwd)/release.vdf +quit
+        echo "::endgroup::"
