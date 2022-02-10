@@ -67,8 +67,8 @@ jobs:
         rm windows.zip mac.dmg
         
         # set env variables for subsequent steps
-        echo "::set-env name=BRANCH::$BRANCH"
-        echo "::set-env name=DESC::$DESC"
+        echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
+        echo "DESC=${DESC}" >> $GITHUB_ENV
     
     - name: Download and extract nightly build
       if: github.event_name != 'release'
@@ -114,8 +114,8 @@ jobs:
         rm windows.zip mac.dmg.zip
         
         # set env variables for subsequent steps
-        echo "::set-env name=BRANCH::$BRANCH"
-        echo "::set-env name=DESC::$DESC"
+        echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
+        echo "DESC=${DESC}" >> $GITHUB_ENV
 
     - name: Setup steamcmd
       uses: CyberAndrii/setup-steamcmd@v1
@@ -143,7 +143,7 @@ jobs:
         echo "::endgroup::"
 
         echo "::group::Preparing build file"
-        sed 's/@@DESC@@/${DESC}/;s/@@BRANCH@@/'${BRANCH}'/' ../source/CI/steam/obs_build.vdf > release.vdf
+        sed 's/@@DESC@@/${{ env.DESC }}/;s/@@BRANCH@@/${{ env.BRANCH }}/' ../source/CI/steam/obs_build.vdf > release.vdf
         echo "Generated file:"
         cat release.vdf
         echo "::endgroup::"
