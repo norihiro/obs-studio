@@ -64,8 +64,11 @@ jobs:
           rm -rf tmp/
           echo "::endgroup::"
         )
-        
         rm windows.zip mac.dmg
+        
+        # set env variables for subsequent steps
+        echo "::set-env name=BRANCH::$BRANCH"
+        echo "::set-env name=DESC::$DESC"
     
     - name: Download and extract nightly build
       if: github.event_name != 'release'
@@ -109,6 +112,10 @@ jobs:
           echo "::endgroup::"
         )
         rm windows.zip mac.dmg.zip
+        
+        # set env variables for subsequent steps
+        echo "::set-env name=BRANCH::$BRANCH"
+        echo "::set-env name=DESC::$DESC"
 
     - name: Setup steamcmd
       uses: CyberAndrii/setup-steamcmd@v1
