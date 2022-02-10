@@ -42,7 +42,8 @@ jobs:
           
           echo "Extracting DMG and moving over .app ..."
           mkdir steam-macos
-          ./7zzs x ../mac.dmg -otmp
+          # ignore exit code from 7zip
+          ./7zzs x ../mac.dmg -otmp || true
           mv tmp/*/OBS.app steam-macos
           rm -rf tmp/
           echo "::endgroup::"
