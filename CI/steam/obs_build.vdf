@@ -1,7 +1,7 @@
 "AppBuild"
 {
 	"AppID" "1905180"
-	"Desc" "GitHub CI - @@DESC@@"
+	"Desc" "github_@@DESC@@"
 
 	"ContentRoot" "./"
 	"BuildOutput" "build/"

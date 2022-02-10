@@ -120,7 +120,7 @@ jobs:
         # don't hardcode this once this goes live
         curl -s "https://api.github.com/repos/obsproject/obs-studio/actions/workflows/583765/runs?per_page=10&event=push&status=completed&branch=master" -o builds.json
         ARTIFACTS_URL=$(jq -r '.workflow_runs[] | select(.conclusion == "success") .artifacts_url' builds.json | head -n1)
-        DESC="nightly-g$(jq -r '.workflow_runs[] | select(.conclusion == "success") .head_sha' builds.json | head -n1 | cut -c1-7)"
+        DESC="g$(jq -r '.workflow_runs[] | select(.conclusion == "success") .head_sha' builds.json | head -n1 | cut -c1-7)"
 
         curl -s $ARTIFACTS_URL -o artifacts.json
         WIN_ARTIFACT_ID=$(jq -r '.artifacts[] | select(.name|test(".*win64")) .id' artifacts.json)
@@ -159,12 +159,12 @@ jobs:
         echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
         echo "DESC=${DESC}" >> $GITHUB_ENV
 
-    - name: Check if nightly has already been uploaded
+    - name: Restore nightly build cache
       if: github.event_name != 'release'
       id: cache-check
       uses: actions/cache@v2
       with:
-        path: ${{ github.workspace }}/steam/release.vdf
+        path: ${{ github.workspace }}/steam/build
         key: ${{ env.BRANCH }}-${{ env.DESC }}
         # Using "restore-keys" will restore the most recent cache for the branch, even if the exact cache doesn't exist.
         # This doesn't set cache-hit to true so it won't skip the upload.
@@ -211,7 +211,7 @@ jobs:
         echo "::endgroup::"
 
         echo "::group::Preparing build file"
-        sed 's/@@DESC@@/${{ env.DESC }}/;s/@@BRANCH@@/${{ env.BRANCH }}/' ../source/CI/steam/obs_build.vdf > release.vdf
+        sed 's/@@DESC@@/${{ env.BRANCH }}-${{ env.DESC }}/;s/@@BRANCH@@/${{ env.BRANCH }}/' ../source/CI/steam/obs_build.vdf > release.vdf
         echo "Generated file:"
         cat release.vdf
         echo "::endgroup::"
