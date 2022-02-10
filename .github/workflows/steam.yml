@@ -166,6 +166,18 @@ jobs:
       with:
         path: ${{ github.workspace }}/steam/release.vdf
         key: ${{ env.BRANCH }}-${{ env.DESC }}
+        # Using "restore-keys" will restore the most recent cache for the branch, even if the exact cache doesn't exist.
+        # This doesn't set cache-hit to true so it won't skip the upload.
+        restore-keys: ${{ env.BRANCH }}-
+
+    - name: Restore release build cache
+      if: github.event_name == 'release'
+      uses: actions/cache@v2
+      with:
+        path: ${{ github.workspace }}/steam/build
+        key: ${{ env.BRANCH }}-${{ env.DESC }}
+        # Normally we should *never* hit the cache here but we can use the previous one to speed up builds
+        restore-keys: ${{ env.BRANCH }}-
 
     - name: Setup steamcmd
       if: steps.cache-check.outputs.cache-hit != 'true'
