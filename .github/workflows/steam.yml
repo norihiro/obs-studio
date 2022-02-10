@@ -54,12 +54,12 @@ jobs:
           echo "::group::Prepare macOS"
 
           # This is crap and should be replaced before going into production.
-          cp ../source/CI/steam/7zss .
-          chmod +x 7zss
+          cp ../source/CI/steam/7zzs .
+          chmod +x 7zzs
 
           echo "Extracting DMG and copying over .app ..."
           mkdir steam-macos
-          ../7zss x ../mac.dmg -otmp
+          ../7zzs x ../mac.dmg -otmp
           mv tmp/*/OBS.app steam-macos
           rm -rf tmp/
 
