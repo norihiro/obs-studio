@@ -488,6 +488,9 @@ static obs_properties_t *pulse_properties(bool input)
 		obs_property_list_insert_string(
 			devices, 0, obs_module_text("Default"), "default");
 
+	obs_properties_add_bool(props, "async_compensation",
+				obs_module_text("AsyncCompensation"));
+
 	return props;
 }
 
@@ -511,6 +514,7 @@ static obs_properties_t *pulse_output_properties(void *unused)
 static void pulse_defaults(obs_data_t *settings)
 {
 	obs_data_set_default_string(settings, "device_id", "default");
+	obs_data_set_default_bool(settings, "async_compensation", true);
 }
 
 /**
@@ -555,6 +559,7 @@ static void pulse_update(void *vptr, obs_data_t *settings)
 	PULSE_DATA(vptr);
 	bool restart = false;
 	const char *new_device;
+	bool async_compensation;
 
 	new_device = obs_data_get_string(settings, "device_id");
 	if (!data->device || strcmp(data->device, new_device) != 0) {
@@ -563,6 +568,9 @@ static void pulse_update(void *vptr, obs_data_t *settings)
 		data->device = bstrdup(new_device);
 		restart = true;
 	}
+
+	async_compensation = obs_data_get_bool(settings, "async_compensation");
+	obs_source_set_async_compensation(data->source, async_compensation);
 
 	if (!restart)
 		return;
