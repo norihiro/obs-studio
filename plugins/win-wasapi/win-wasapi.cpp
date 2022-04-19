@@ -21,6 +21,7 @@ using namespace std;
 
 #define OPT_DEVICE_ID "device_id"
 #define OPT_USE_DEVICE_TIMING "use_device_timing"
+#define OPT_ASYNC_COMPENSATION "async_compensation"
 
 static void GetWASAPIDefaults(obs_data_t *settings);
 
@@ -504,6 +505,8 @@ WASAPISource::~WASAPISource()
 
 void WASAPISource::UpdateSettings(obs_data_t *settings)
 {
+	bool async_compensation;
+
 	device_id = obs_data_get_string(settings, OPT_DEVICE_ID);
 	useDeviceTiming = obs_data_get_bool(settings, OPT_USE_DEVICE_TIMING);
 	isDefaultDevice = _strcmpi(device_id.c_str(), "default") == 0;
@@ -514,6 +517,11 @@ void WASAPISource::UpdateSettings(obs_data_t *settings)
 	     "\tuse device timing: %d",
 	     obs_source_get_name(source), device_id.c_str(),
 	     (int)useDeviceTiming);
+
+	async_compensation =
+		obs_data_get_bool(settings, OPT_ASYNC_COMPENSATION);
+	obs_source_set_async_compensation(source, async_compensation &
+							  !useDeviceTiming);
 }
 
 void WASAPISource::Update(obs_data_t *settings)
@@ -1140,6 +1148,7 @@ static void GetWASAPIDefaultsInput(obs_data_t *settings)
 {
 	obs_data_set_default_string(settings, OPT_DEVICE_ID, "default");
 	obs_data_set_default_bool(settings, OPT_USE_DEVICE_TIMING, false);
+	obs_data_set_default_bool(settings, "async_compensation", true);
 }
 
 static void GetWASAPIDefaultsOutput(obs_data_t *settings)
@@ -1180,6 +1189,20 @@ static void UpdateWASAPISource(void *obj, obs_data_t *settings)
 	static_cast<WASAPISource *>(obj)->Update(settings);
 }
 
+static bool device_timing_changed(obs_properties_t *props,
+				  obs_property_t *property,
+				  obs_data_t *settings)
+{
+	bool useDeviceTiming =
+		obs_data_get_bool(settings, OPT_USE_DEVICE_TIMING);
+
+	obs_property_t *prop =
+		obs_properties_get(props, OPT_ASYNC_COMPENSATION);
+	obs_property_set_enabled(prop, !useDeviceTiming);
+
+	return true;
+}
+
 static obs_properties_t *GetWASAPIProperties(bool input)
 {
 	obs_properties_t *props = obs_properties_create();
@@ -1201,8 +1224,15 @@ static obs_properties_t *GetWASAPIProperties(bool input)
 					     device.id.c_str());
 	}
 
-	obs_properties_add_bool(props, OPT_USE_DEVICE_TIMING,
-				obs_module_text("UseDeviceTiming"));
+	obs_property_t *device_timing_prop =
+		obs_properties_add_bool(props, OPT_USE_DEVICE_TIMING,
+					obs_module_text("UseDeviceTiming"));
+
+	obs_properties_add_bool(props, OPT_ASYNC_COMPENSATION,
+				obs_module_text("AsyncCompensation"));
+
+	obs_property_set_modified_callback(device_timing_prop,
+					   device_timing_changed);
 
 	return props;
 }
