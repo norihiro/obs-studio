@@ -40,7 +40,7 @@
 
 uint64_t os_gettime_ns(void)
 {
-	return clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+	return os_time_compensation_ns(clock_gettime_nsec_np(CLOCK_UPTIME_RAW));
 }
 
 /* gets the location [domain mask]/Library/Application Support/[name] */

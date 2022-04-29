@@ -27,6 +27,8 @@
 #include "utf8.h"
 #include "dstr.h"
 #include "obs.h"
+#include "threading.h"
+#include "media-io/lag_lead_filter.h"
 
 FILE *os_wfopen(const wchar_t *path, const char *mode)
 {
@@ -811,4 +813,107 @@ char *os_generate_formatted_filename(const char *extension, bool space,
 		dstr_mid(&sf, &sf, 0, 255);
 
 	return sf.array;
+}
+
+static pthread_mutex_t compensation_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t compensation_offset_mutex = PTHREAD_MUTEX_INITIALIZER;
+static volatile int64_t compensation_offset = 0;
+static int64_t compensation_offset_rem = 0;
+static volatile bool compensation_filter_configured = false;
+static struct lag_lead_filter compensation_filter = {0};
+static uint64_t compensation_last_ns = 0;
+#define COMPENSATION_TICK_MAX_NS 50000000 // twice of obs_hotkey_thread
+
+uint64_t os_time_compensation_ns(uint64_t ns)
+{
+	if (!compensation_filter_configured)
+		return ns;
+
+	int64_t offset = compensation_offset; // TODO: use atomic feature
+	if (pthread_mutex_trylock(&compensation_mutex) == 0) {
+		uint32_t tick_ns;
+		if (ns < compensation_last_ns)
+			tick_ns = 0;
+		else if (ns < compensation_last_ns + COMPENSATION_TICK_MAX_NS)
+			tick_ns = (uint32_t)(ns - compensation_last_ns);
+		else
+			tick_ns = COMPENSATION_TICK_MAX_NS;
+		compensation_last_ns = ns;
+		compensation_offset_rem +=
+			(uint64_t)(lag_lead_filter_get_drift(
+					   &compensation_filter) *
+				   tick_ns);
+		if (pthread_mutex_lock(&compensation_offset_mutex) == 0) {
+			if (compensation_offset_rem < 0) {
+				int64_t add = compensation_offset_rem / 1000000000;
+				if (-add > tick_ns)
+					add = -(int64_t)tick_ns;
+				compensation_offset += add;
+				compensation_offset_rem -= add * 1000000000;
+			} else {
+				compensation_offset +=
+					compensation_offset_rem / 1000000000;
+				compensation_offset_rem %= 1000000000;
+			}
+			offset = compensation_offset;
+			pthread_mutex_unlock(&compensation_offset_mutex);
+		}
+		pthread_mutex_unlock(&compensation_mutex);
+	} else {
+		if (pthread_mutex_lock(&compensation_offset_mutex) == 0) {
+			offset = compensation_offset;
+			pthread_mutex_unlock(&compensation_offset_mutex);
+		}
+	}
+
+	return ns + offset;
+}
+
+#ifdef _WIN32
+uint64_t os_time_compensation_peek_offset_ns()
+{
+	int64_t offset = compensation_offset; // TODO: use atomic feature
+	if (pthread_mutex_lock(&compensation_offset_mutex) == 0) {
+		offset = compensation_offset;
+		pthread_mutex_unlock(&compensation_offset_mutex);
+	}
+	return offset;
+}
+#endif // _WIN32
+
+void os_time_compensation_set_error(int64_t error_ns)
+{
+	if (pthread_mutex_lock(&compensation_mutex) == 0) {
+		static uint64_t last_ns = 0;
+		uint64_t current_ns = os_gettime_ns();
+		if (!compensation_filter_configured) {
+			lag_lead_filter_reset(&compensation_filter);
+			lag_lead_filter_update(&compensation_filter);
+			compensation_last_ns = current_ns;
+			compensation_filter_configured = true;
+			last_ns = current_ns;
+		}
+		uint32_t tick_ns = 0;
+		if (current_ns - last_ns < COMPENSATION_TICK_MAX_NS)
+			tick_ns = (uint32_t)(current_ns - last_ns);
+		else
+			tick_ns = COMPENSATION_TICK_MAX_NS;
+
+		lag_lead_filter_tick(&compensation_filter, 1000000000, tick_ns);
+		last_ns = current_ns;
+
+		if (error_ns < INT32_MIN)
+			error_ns = INT32_MIN;
+		else if (error_ns > INT32_MAX)
+			error_ns = INT32_MAX;
+		lag_lead_filter_set_error_ns(&compensation_filter,
+					     (int32_t)error_ns);
+
+		pthread_mutex_unlock(&compensation_mutex);
+	}
+}
+
+void os_time_compensation_disable()
+{
+	compensation_filter_configured = false;
 }

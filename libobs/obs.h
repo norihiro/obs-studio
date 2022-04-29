@@ -1173,6 +1173,8 @@ EXPORT bool obs_source_showing(const obs_source_t *source);
 #define OBS_SOURCE_FLAG_UNUSED_1 (1 << 0)
 /** Specifies to force audio to mono */
 #define OBS_SOURCE_FLAG_FORCE_MONO (1 << 1)
+/** synchronize os_gettime_ns() to this souce */
+#define OBS_SOURCE_FLAG_MASTER_CLOCK (1 << 2)
 
 /**
  * Sets source flags.  Note that these are different from the main output

@@ -1517,7 +1517,16 @@ static void source_output_audio_data(obs_source_t *source,
 		}
 	}
 
-	if (source->async_compensation && source->resampler) {
+	if (source->flags & OBS_SOURCE_FLAG_MASTER_CLOCK) {
+		os_time_compensation_set_error(in.timestamp - data->timestamp +
+					       source->resample_offset);
+
+		if (source->last_async_compensation && source->resampler) {
+			source->last_async_compensation = false;
+			audio_resampler_disable_compensation(source->resampler);
+		}
+
+	} else if (source->async_compensation && source->resampler) {
 		uint64_t ts_buffered = in.timestamp;
 		uint64_t ts_data = data->timestamp - source->resample_offset;
 		int64_t error = (int64_t)(ts_buffered - ts_data);

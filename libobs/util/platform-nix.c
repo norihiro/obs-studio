@@ -261,7 +261,8 @@ uint64_t os_gettime_ns(void)
 {
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
-	return ((uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec);
+	return os_time_compensation_ns((uint64_t)ts.tv_sec * 1000000000ULL +
+				       (uint64_t)ts.tv_nsec);
 }
 
 /* should return $HOME/.[name], or when using XDG,

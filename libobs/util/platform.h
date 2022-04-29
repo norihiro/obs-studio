@@ -107,6 +107,11 @@ EXPORT bool os_sleepto_ns_fast(uint64_t time_target);
 EXPORT void os_sleep_ms(uint32_t duration);
 
 EXPORT uint64_t os_gettime_ns(void);
+EXPORT void os_time_compensation_set_error(int64_t error_ns);
+EXPORT uint64_t os_time_compensation_ns(uint64_t ns);
+#ifdef _WIN32
+EXPORT uint64_t os_time_compensation_peek_offset_ns();
+#endif
 
 EXPORT int os_get_config_path(char *dst, size_t size, const char *name);
 EXPORT char *os_get_config_path_ptr(const char *name);
