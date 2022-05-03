@@ -5105,6 +5105,19 @@
                      </property>
                     </widget>
                    </item>
+                   <item row="3" column="0">
+                    <widget class="QLabel" name="masterAudioDeviceLabel">
+                     <property name="text">
+                      <string>Basic.Settings.Advanced.Audio.MasterAudioDevice</string>
+                     </property>
+                     <property name="buddy">
+                      <cstring>masterAudioDevice</cstring>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="3" column="1">
+                    <widget class="QComboBox" name="masterAudioDevice"/>
+                   </item>
                   </layout>
                  </widget>
                 </item>
@@ -7591,6 +7604,7 @@
   <tabstop>monitoringDevice</tabstop>
   <tabstop>disableAudioDucking</tabstop>
   <tabstop>lowLatencyBuffering</tabstop>
+  <tabstop>masterAudioDevice</tabstop>
   <tabstop>outputResolution</tabstop>
   <tabstop>downscaleFilter</tabstop>
   <tabstop>fpsType</tabstop>
