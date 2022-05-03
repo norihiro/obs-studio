@@ -695,8 +695,6 @@ void DeckLinkDeviceInstance::CalculateAndCorrectDrift()
 
 void DeckLinkDeviceInstance::DisplayVideoFrame(video_data *frame)
 {
-	CalculateAndCorrectDrift();
-
 	auto decklinkOutput = dynamic_cast<DeckLinkOutput *>(decklink);
 	if (decklinkOutput == nullptr)
 		return;
@@ -740,6 +738,8 @@ HRESULT DeckLinkDeviceInstance::ScheduledPlaybackHasStopped()
 
 void DeckLinkDeviceInstance::WriteAudio(audio_data *frames)
 {
+	CalculateAndCorrectDrift();
+
 	uint32_t sampleFramesWritten;
 	output->ScheduleAudioSamples(frames->data[0],
 			frames->frames,
