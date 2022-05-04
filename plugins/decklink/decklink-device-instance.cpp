@@ -19,6 +19,7 @@
 
 #define TIME_BASE 1000000000
 #define RESYNC_THREASHOLD_NS (10*1000*1000)
+#define FILTER_TIME 120.0 // 2 minutes
 
 static inline enum video_format ConvertPixelFormat(BMDPixelFormat format)
 {
@@ -573,6 +574,8 @@ bool DeckLinkDeviceInstance::StartOutput(DeckLinkDeviceMode *mode_)
 	framesSinceDriftCalc = 0;
 	driftAverage = RollingAverage(DRIFT_AVERAGE_SAMPLES);
 	lastAverage = 0;
+	lag_lead_filter_reset(&clockAdjustmentFilter);
+	lag_lead_filter_update(&clockAdjustmentFilter, 1.0 / FILTER_TIME);
 
 	SetClockTimingAdjustment(0); // only for debug
 
@@ -651,6 +654,7 @@ void DeckLinkDeviceInstance::CalculateAndCorrectDrift()
 	if (!hardwareStartTime) {
 		hardwareStartTime = hardwareTime;
 		systemStartTime = systemTime;
+		lastSystemStartTime = systemTime;
 		blog(LOG_INFO, "hardwareStartTime %f ms, systemStartTime %f ms", hardwareStartTime*1e-6, systemStartTime*1e-6);
 	}
 
@@ -666,29 +670,37 @@ void DeckLinkDeviceInstance::CalculateAndCorrectDrift()
 
 	driftAverage.SubmitSample(timestampOffset);
 
-	// Only operate every 300 frames
-	if (framesSinceDriftCalc > 300)
-		framesSinceDriftCalc = 0;
-	else
-		return;
+	lag_lead_filter_set_error_ns(&clockAdjustmentFilter, timestampOffset);
+	lag_lead_filter_tick(&clockAdjustmentFilter,
+			    1000000,
+			    (systemTime - lastSystemStartTime) / 1000);
+	lastSystemStartTime = systemTime;
 
 	int64_t average = driftAverage.GetAverage();
+	// TODO: do we need to use int64_t
+	int64_t clockAdjustment_next = -(int64_t)lag_lead_filter_get_drift(&clockAdjustmentFilter);
+	if (clockAdjustment_next > 127)
+		clockAdjustment_next = 127;
+	else if (clockAdjustment_next < -127)
+		clockAdjustment_next = -127;
 
-	// If deviation between clocks is >60us, apply corrective actions
-	if (std::abs(average) > 60000) {
-		// Random note about isCorrecting. If one value is positive and the other is negative, this calc doesn't work.
-		// But because we're only correcting when we're far from 0 anyway, it doesn't really matter that it isn't perfect.
-		bool isCorrecting = (std::abs(lastAverage) - std::abs(average)) >= 0;
-
-		if (!isCorrecting)
-			clockAdjustment += (average < 0 ? 1 : -1); // If average is negative (system faster than hardware), then speed up hardware to match
-
+	if (clockAdjustment_next != clockAdjustment) {
+		if (clockAdjustment_next > clockAdjustment)
+			clockAdjustment += 1;
+		else
+			clockAdjustment -= 1;
 		SetClockTimingAdjustment(clockAdjustment);
 
 		blog(LOG_INFO, "Clock adjustment is at %d | Drift: %fus (instant) %fus (average)", (int)clockAdjustment, timestampOffset*1e-6, average*1e-6);
 	}
 
 	lastAverage = average;
+
+	// Only operate every 300 frames
+	if (framesSinceDriftCalc > 300)
+		framesSinceDriftCalc = 0;
+	else
+		return;
 
 	// DEBUG BELOW IGNORE ================================
 

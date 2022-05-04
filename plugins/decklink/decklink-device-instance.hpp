@@ -11,6 +11,7 @@
 #include "OBSVideoFrame.h"
 
 #include "util.hpp"
+#include "lag_lead_filter.h"
 
 #define MS_TO_NS(ms) (ms * 1000000)
 #define DECKLINK_BUFFER_SIZE MS_TO_NS(100)
@@ -50,9 +51,11 @@ protected:
 	uint64_t frameLength = 0;
 	uint64_t hardwareStartTime = 0;
 	uint64_t systemStartTime = 0;
+	uint64_t lastSystemStartTime = 0;
 
 	size_t framesSinceDriftCalc = 0;
 	RollingAverage driftAverage;
+	struct lag_lead_filter clockAdjustmentFilter;
 	int64_t lastAverage = 0;
 	int64_t clockAdjustment = 0;
 
