@@ -16,6 +16,8 @@
 #define DECKLINK_BUFFER_SIZE MS_TO_NS(100)
 
 #define DRIFT_AVERAGE_SAMPLES 280
+#define CLOCK_ADJUST_DIVISOR 8192
+#define CLOCK_ADJUST_HYSTERESIS 1
 
 class AudioRepacker;
 class DecklinkBase;

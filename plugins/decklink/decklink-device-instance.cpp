@@ -666,22 +666,23 @@ void DeckLinkDeviceInstance::CalculateAndCorrectDrift()
 
 	driftAverage.SubmitSample(timestampOffset);
 
-	// Only operate every 300 frames
-	if (framesSinceDriftCalc > 300)
-		framesSinceDriftCalc = 0;
-	else
-		return;
-
 	int64_t average = driftAverage.GetAverage();
+	// TODO: do we need to use int64_t
+	// proportional filter for the feedback loop
+	int64_t clockAdjustment_next = -average / CLOCK_ADJUST_DIVISOR;
 
-	// If deviation between clocks is >60us, apply corrective actions
-	if (std::abs(average) > 60000) {
-		// Random note about isCorrecting. If one value is positive and the other is negative, this calc doesn't work.
-		// But because we're only correcting when we're far from 0 anyway, it doesn't really matter that it isn't perfect.
-		bool isCorrecting = (std::abs(lastAverage) - std::abs(average)) >= 0;
+	// clamp at +/-127
+	if (clockAdjustment_next > 127)
+		clockAdjustment_next = 127;
+	else if (clockAdjustment_next < -127)
+		clockAdjustment_next = -127;
 
-		if (!isCorrecting)
-			clockAdjustment += (average < 0 ? 1 : -1); // If average is negative (system faster than hardware), then speed up hardware to match
+	// hysteresis and slew rate limit
+	if (std::abs(clockAdjustment_next - clockAdjustment) > CLOCK_ADJUST_HYSTERESIS) {
+		if (clockAdjustment_next > clockAdjustment)
+			clockAdjustment += 1;
+		else
+			clockAdjustment -= 1;
 
 		SetClockTimingAdjustment(clockAdjustment);
 
@@ -689,6 +690,12 @@ void DeckLinkDeviceInstance::CalculateAndCorrectDrift()
 	}
 
 	lastAverage = average;
+
+	// Only operate every 300 frames
+	if (framesSinceDriftCalc > 300)
+		framesSinceDriftCalc = 0;
+	else
+		return;
 
 	// DEBUG BELOW IGNORE ================================
 
