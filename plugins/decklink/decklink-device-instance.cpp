@@ -18,6 +18,7 @@
 #include <util/bitstream.h>
 
 #define TIME_BASE 1000000000
+#define RESYNC_THREASHOLD_NS (10*1000*1000)
 
 static inline enum video_format ConvertPixelFormat(BMDPixelFormat format)
 {
@@ -650,11 +651,18 @@ void DeckLinkDeviceInstance::CalculateAndCorrectDrift()
 	if (!hardwareStartTime) {
 		hardwareStartTime = hardwareTime;
 		systemStartTime = systemTime;
+		blog(LOG_INFO, "hardwareStartTime %f ms, systemStartTime %f ms", hardwareStartTime*1e-6, systemStartTime*1e-6);
 	}
 
 	uint64_t hardwareDuration = hardwareTime - hardwareStartTime;
 	uint64_t systemDuration = systemTime - systemStartTime;
 	int64_t timestampOffset = hardwareDuration - systemDuration;
+
+	if (std::abs(timestampOffset) > RESYNC_THREASHOLD_NS) {
+		// synchronize again at the next iteration
+		hardwareStartTime = 0;
+		return;
+	}
 
 	driftAverage.SubmitSample(timestampOffset);
 
@@ -677,7 +685,7 @@ void DeckLinkDeviceInstance::CalculateAndCorrectDrift()
 
 		SetClockTimingAdjustment(clockAdjustment);
 
-		blog(LOG_INFO, "Clock adjustment is at %ld | Drift: %ldus", clockAdjustment, average / 1000000);
+		blog(LOG_INFO, "Clock adjustment is at %d | Drift: %fus (instant) %fus (average)", (int)clockAdjustment, timestampOffset*1e-6, average*1e-6);
 	}
 
 	lastAverage = average;
