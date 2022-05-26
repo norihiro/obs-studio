@@ -15,6 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 
+#define BMEM_TRACE
+
 #include <time.h>
 #include <stdio.h>
 #include <wchar.h>
@@ -2931,6 +2933,11 @@ static bool vc_runtime_outdated()
 }
 #endif
 
+#ifdef BMEM_TRACE
+extern "C"
+void bmem_trace_dump(int log_level);
+#endif // BMEM_TRACE
+
 int main(int argc, char *argv[])
 {
 #ifndef _WIN32
@@ -3142,6 +3149,9 @@ int main(int argc, char *argv[])
 
 	delete_safe_mode_sentinel();
 	blog(LOG_INFO, "Number of memory leaks: %ld", bnum_allocs());
+#ifdef BMEM_TRACE
+	bmem_trace_dump(LOG_ERROR);
+#endif
 	base_set_log_handler(nullptr, nullptr);
 
 	if (restart || restart_safe) {
