@@ -6,6 +6,7 @@ on:
       - '**.md'
     branches:
       - master
+      - 27.2-vth264
       - 'release/**'
     tags:
       - '*'
