@@ -1050,7 +1050,7 @@ void OBSBasic::LoadData(obs_data_t *data, const char *file)
 	obs_load_sources(sources, cb, files);
 
 	if (transitions)
-		LoadTransitions(transitions, cb, files);
+		LoadTransitions(transitions);
 	if (sceneOrder)
 		LoadSceneListOrder(sceneOrder);
 
