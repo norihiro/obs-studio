@@ -4796,8 +4796,6 @@ void obs_source_set_audio_mixers(obs_source_t *source, uint32_t mixers)
 
 	if (!obs_source_valid(source, "obs_source_set_audio_mixers"))
 		return;
-	if ((source->info.output_flags & OBS_SOURCE_AUDIO) == 0)
-		return;
 
 	if (source->audio_mixers == mixers)
 		return;
@@ -4816,8 +4814,6 @@ void obs_source_set_audio_mixers(obs_source_t *source, uint32_t mixers)
 uint32_t obs_source_get_audio_mixers(const obs_source_t *source)
 {
 	if (!obs_source_valid(source, "obs_source_get_audio_mixers"))
-		return 0;
-	if ((source->info.output_flags & OBS_SOURCE_AUDIO) == 0)
 		return 0;
 
 	return source->audio_mixers;
