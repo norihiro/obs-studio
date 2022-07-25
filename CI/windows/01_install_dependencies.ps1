@@ -125,9 +125,7 @@ function Install-Dependencies {
 
     $BuildDependencies = @(
         @('obs-deps', $WindowsDepsVersion),
-        @('qt-deps', $WindowsDepsVersion),
-        @('vlc', $WindowsVlcVersion),
-        @('cef', $WindowsCefVersion)
+        @('qt-deps', $WindowsDepsVersion)
     )
 
     Foreach($Dependency in ${BuildDependencies}) {
