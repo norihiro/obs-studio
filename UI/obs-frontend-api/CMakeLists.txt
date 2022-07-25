@@ -38,3 +38,8 @@ endif()
 
 setup_binary_target(obs-frontend-api)
 export_target(obs-frontend-api)
+
+# TODO: consider remove this.
+if (OS_LINUX)
+	install_headers(obs-frontend-api)
+endif()
