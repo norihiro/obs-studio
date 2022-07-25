@@ -5,6 +5,7 @@ on:
     paths-ignore: ['**.md']
     branches:
       - master
+      - 27-devel-pkg
       - 'release/**'
     tags: ['*']
   pull_request:
