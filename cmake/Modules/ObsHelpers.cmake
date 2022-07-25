@@ -294,15 +294,13 @@ function(export_target target)
     FILE ${TARGETS_EXPORT_NAME}.cmake
     NAMESPACE OBS::
     DESTINATION ${OBS_CMAKE_DESTINATION}/${target}
-    COMPONENT obs_libraries
-    ${_EXCLUDE})
+    COMPONENT obs_libraries)
 
   install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/${target}Config.cmake
           ${CMAKE_CURRENT_BINARY_DIR}/${target}ConfigVersion.cmake
     DESTINATION ${OBS_CMAKE_DESTINATION}/${target}
-    COMPONENT obs_libraries
-    ${_EXCLUDE})
+    COMPONENT obs_libraries)
 endfunction()
 
 # Helper function to define available graphics modules for targets
