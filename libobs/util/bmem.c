@@ -58,20 +58,25 @@ struct bmem_trace {
 	struct bmem_trace **prev_next;
 	void *buffer[BMEM_TRACE_DEPTH];
 	int nptrs;
+	size_t size;
 };
 
 #define BMEM_TRACE_SIZE_BYTE \
 	((sizeof(struct bmem_trace) + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT)
+#define BMEM_OVERRUN_TEST_BYTE ALIGNMENT
+
+#define BMEM_OVERRUN_TEST_CODE 0xB3
 
 static struct bmem_trace *trace_first = NULL;
 static pthread_mutex_t bmem_trace_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void bmem_trace_dump_once(int log_level, struct bmem_trace *bt);
 
-static inline void register_trace(void *ptr)
+static inline void register_trace(void *ptr, size_t size)
 {
 	struct bmem_trace *bt = ptr;
 	bt->nptrs = backtrace(bt->buffer, BMEM_TRACE_DEPTH);
+	bt->size = size;
 
 	pthread_mutex_lock(&bmem_trace_mutex);
 	bt->prev_next = &trace_first;
@@ -100,9 +105,10 @@ static void unregister_trace(void *ptr)
 	pthread_mutex_unlock(&bmem_trace_mutex);
 }
 
-static void reregister_trace(void *ptr)
+static void reregister_trace(void *ptr, size_t size)
 {
 	struct bmem_trace *bt = ptr;
+	bt->size = size;
 	pthread_mutex_lock(&bmem_trace_mutex);
 	if (bt->next)
 		bt->next->prev_next = &bt->next;
@@ -141,8 +147,26 @@ void bmem_trace_dump(int log_level)
 	}
 	pthread_mutex_unlock(&bmem_trace_mutex);
 }
+
+static void bmem_overrun_test_set(uint8_t *ptr)
+{
+	for (size_t i = 0; i < BMEM_OVERRUN_TEST_BYTE; i++)
+		ptr[i] = BMEM_OVERRUN_TEST_CODE + i;
+}
+
+static void bmem_overrun_test_check(uint8_t *ptr)
+{
+	bool pass = true;
+	for (size_t i = 0; i < BMEM_OVERRUN_TEST_BYTE; i++)
+		pass &= ptr[i] == BMEM_OVERRUN_TEST_CODE + i;
+	if (!pass) {
+		blog(LOG_ERROR, "bmem_overrun_test_check: failed at %p", ptr);
+	}
+}
+
 #else // BMEM_TRACE
 #define BMEM_TRACE_SIZE_BYTE 0
+#define BMEM_OVERRUN_TEST_BYTE 0
 #endif // BMEM_TRACE
 
 static void *a_malloc(size_t size)
@@ -153,16 +177,18 @@ static void *a_malloc(size_t size)
 	void *ptr = NULL;
 	long diff;
 
-	ptr = malloc(size + ALIGNMENT + BMEM_TRACE_SIZE_BYTE);
+	ptr = malloc(size + ALIGNMENT + BMEM_TRACE_SIZE_BYTE + BMEM_OVERRUN_TEST_BYTE);
 	if (ptr) {
 		diff = ((~(long)ptr) & (ALIGNMENT - 1)) + 1;
 #ifdef BMEM_TRACE
-		register_trace(ptr);
+		register_trace(ptr, size);
 		diff += BMEM_TRACE_SIZE_BYTE;
 #endif // BMEM_TRACE
 
 		ptr = (char *)ptr + diff;
 		((unsigned char *)ptr)[-1] = (unsigned char)diff;
+
+		bmem_overrun_test_set(ptr + size);
 	}
 
 	return ptr;
@@ -181,12 +207,18 @@ static void *a_realloc(void *ptr, size_t size)
 	if (!ptr)
 		return a_malloc(size);
 	diff = ((unsigned char *)ptr)[-1];
-	ptr = realloc((char *)ptr - diff, size + diff);
+#ifdef BMEM_TRACE
+	bmem_overrun_test_check(ptr + ((struct bmem_trace *)((char *)ptr - diff))->size);
+#endif
+	ptr = realloc((char *)ptr - diff, size + diff + BMEM_OVERRUN_TEST_CODE);
 	if (ptr) {
 #ifdef BMEM_TRACE
-		reregister_trace(ptr);
+		reregister_trace(ptr, size);
 #endif
 		ptr = (char *)ptr + diff;
+#ifdef BMEM_TRACE
+		bmem_overrun_test_set(ptr + size);
+#endif
 	}
 	return ptr;
 #else
@@ -203,6 +235,7 @@ static void a_free(void *ptr)
 		long diff = ((unsigned char *)ptr)[-1];
 		ptr = (char *)ptr - diff;
 #ifdef BMEM_TRACE
+		bmem_overrun_test_check((char *)ptr + diff + ((struct bmem_trace *)ptr)->size);
 		unregister_trace(ptr);
 #endif // BMEM_TRACE
 		free(ptr);
