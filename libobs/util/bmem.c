@@ -28,7 +28,7 @@
  *   http://www.ffmpeg.org/
  */
 
-#ifdef BMEM_TRACE
+#if defined(BMEM_TRACE) && !defined(_WIN32)
 #include <execinfo.h>
 #endif
 
@@ -71,6 +71,20 @@ static struct bmem_trace *trace_first = NULL;
 static pthread_mutex_t bmem_trace_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void bmem_trace_dump_once(int log_level, struct bmem_trace *bt);
+
+#ifdef _WIN32
+static inline int backtrace(void **buffer, int size)
+{
+	return (int)CaptureStackBackTrace(1, size, buffer, NULL);
+}
+
+char **backtrace_symbols(const void **buffer, int size)
+{
+	char *buffer = malloc(sizeof(char*) * size + sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR) * size);
+	char **result = (char**)buffer;
+	// TODO: implement the rest
+}
+#endif
 
 static inline void register_trace(void *ptr, size_t size)
 {
