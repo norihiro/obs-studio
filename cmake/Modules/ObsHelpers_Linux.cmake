@@ -109,7 +109,6 @@ function(install_headers target)
     install(
       FILES "${CMAKE_BINARY_DIR}/config/obsconfig.h"
       DESTINATION "${OBS_INCLUDE_DESTINATION}"
-      COMPONENT obs_libraries
-      EXCLUDE_FROM_ALL)
+      COMPONENT obs_libraries)
   endif()
 endfunction()
