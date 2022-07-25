@@ -248,7 +248,7 @@ static pa_channel_map pulseaudio_channel_map(enum speaker_layout layout)
 		ret.map[1] = PA_CHANNEL_POSITION_FRONT_LEFT_OF_CENTER;
 		ret.map[2] = PA_CHANNEL_POSITION_FRONT_RIGHT_OF_CENTER;
 		ret.map[3] = PA_CHANNEL_POSITION_FRONT_LEFT;
-		ret.map[4] = PA_CHANNEL_POSITION_FRONT_RIGHT
+		ret.map[4] = PA_CHANNEL_POSITION_FRONT_RIGHT;
 		ret.map[5] = PA_CHANNEL_POSITION_SIDE_LEFT;
 		ret.map[6] = PA_CHANNEL_POSITION_SIDE_RIGHT;
 		ret.map[7] = PA_CHANNEL_POSITION_REAR_LEFT;
