@@ -163,39 +163,25 @@ jobs:
           RESTORED_CEF: ${{ steps.cef-cache.outputs.cache-hit }}
         run: CI/macos/01_install_dependencies.sh --architecture "${{ matrix.arch }}"
 
-      - name: 'Install Apple Developer Certificate'
-        if: ${{ startsWith(github.ref, 'refs/tags/') && github.event_name != 'pull_request' && env.HAVE_CODESIGN_IDENTITY == 'true' }}
-        uses: apple-actions/import-codesign-certs@253ddeeac23f2bdad1646faac5c8c2832e800071
-        with:
-          p12-file-base64: ${{ secrets.MACOS_SIGNING_CERT }}
-          p12-password: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD }}
-
-      - name: 'Set Signing Identity'
-        if: ${{ startsWith(github.ref, 'refs/tags/') && github.event_name != 'pull_request' && env.HAVE_CODESIGN_IDENTITY == 'true' }}
-        run: |
-          echo "CODESIGN_IDENT=${{ secrets.MACOS_SIGNING_IDENTITY }}" >> $GITHUB_ENV
-          echo "BUILD_FOR_DISTRIBUTION=ON" >> $GITHUB_ENV
-
       - name: 'Build OBS'
-        run: CI/macos/02_build_obs.sh --codesign --architecture "${{ matrix.arch }}"
-
-      - name: 'Run tests'
-        if: ${{ success() && matrix.arch == 'x86_64' }}
-        run: cmake --build build -t test
+        run: CI/macos/02_build_obs.sh --architecture "${{ matrix.arch }}"
 
       - name: 'Create build artifact'
         if: ${{ success() && (github.event_name != 'pull_request' || env.SEEKING_TESTERS == '1') }}
         run: |
-          CI/macos/03_package_obs.sh --codesign --architecture "${{ matrix.arch }}"
-          ARTIFACT_NAME=$(basename $(/usr/bin/find build -type f -name "obs-studio-*.dmg" -depth 1 | head -1))
-          echo "FILE_NAME=${ARTIFACT_NAME}" >> $GITHUB_ENV
+          FILE_NAME="$PWD/obs-studio-devel-$(git describe --tags)-macos-${{ matrix.arch }}.tar.gz"
+
+          cmake --install build --prefix /tmp/obs-devel --component obs_libraries
+          ( cd /tmp/obs-devel && tar czf "${FILE_NAME}" * )
+
+          echo "FILE_NAME=$FILE_NAME" >> $GITHUB_ENV
 
       - name: 'Upload build Artifact'
         if: ${{ success() && (github.event_name != 'pull_request' || env.SEEKING_TESTERS == '1') }}
         uses: actions/upload-artifact@v3
         with:
           name: 'obs-macos-${{ matrix.arch }}-${{ steps.setup.outputs.commitHash }}'
-          path: '${{ github.workspace }}/obs-studio/build/${{ env.FILE_NAME }}'
+          path: '${{ env.FILE_NAME }}'
 
   linux_build:
     name: '02 - Linux'
@@ -456,7 +442,7 @@ jobs:
     env:
       HAVE_CODESIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY != '' && secrets.MACOS_SIGNING_CERT != '' }}
       BUILD_FOR_DISTRIBUTION: 'ON'
-    if: ${{ startsWith(github.ref, 'refs/tags/') && github.event_name != 'pull_request' }}
+    if: false
     strategy:
       matrix:
         arch: ['x86_64', 'arm64']
