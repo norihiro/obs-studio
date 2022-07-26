@@ -159,7 +159,7 @@ macro(setup_obs_project)
       "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-macOS-${CPACK_ARCH_SUFFIX}"
   )
 
-  set(CPACK_COMPONENTS_ALL obs_app obs_frameworks obs_plugins
+  set(CPACK_COMPONENTS_ALL obs_app obs_frameworks obs_plugins obs_libraries
                            obs_scripting_plugins obs_resources)
   set(CPACK_COMPONENT_OBS_APP_DISPLAY_NAME "OBS Studio")
   set(CPACK_COMPONENT_OBS_FRAMEWORKS_DISPLAY_NAME "OBS Frameworks")
