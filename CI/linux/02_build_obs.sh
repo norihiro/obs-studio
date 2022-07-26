@@ -59,6 +59,7 @@ _configure_obs() {
         -DLINUX_PORTABLE=${PORTABLE_BUILD:-OFF} \
         -DENABLE_AJA=OFF \
         -DENABLE_NEW_MPEGTS_OUTPUT=OFF \
+	-D CMAKE_INSTALL_PREFIX=/usr \
         -D ENABLE_PLUGINS=OFF \
         -D ENABLE_UI=OFF \
         ${PIPEWIRE_OPTION} \
