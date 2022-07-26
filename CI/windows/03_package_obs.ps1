@@ -71,7 +71,7 @@ function Package-OBS {
         Invoke-Expression "cmake --build `"${BuildDirectory}64`" --config ${BuildConfiguration} -t install"
 
         $CompressVars = @{
-            Path = "${CheckoutDir}/build64/install/bin", "${CheckoutDir}/build64/install/data"
+            Path = "${CheckoutDir}/build64", "${CheckoutDir}/libobs", "${CheckoutDir}/UI/obs-frontend-api"
             CompressionLevel = "Optimal"
             DestinationPath = "${FileName}-Win-x64.zip"
         }
