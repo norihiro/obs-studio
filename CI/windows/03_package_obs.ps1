@@ -71,7 +71,7 @@ function Package-OBS {
         Invoke-Expression "cmake --build `"${BuildDirectory}64`" --config ${BuildConfiguration} -t install"
 
         $CompressVars = @{
-            Path = "${CheckoutDir}/build64/install/bin", "${CheckoutDir}/build64/install/data", "${CheckoutDir}/build64/install/obs-plugins"
+            Path = "${CheckoutDir}/build64/install/bin", "${CheckoutDir}/build64/install/data"
             CompressionLevel = "Optimal"
             DestinationPath = "${FileName}-x64.zip"
         }
@@ -87,7 +87,7 @@ function Package-OBS {
         Invoke-Expression "cmake --build `"${BuildDirectory}32`" --config ${BuildConfiguration} -t install"
 
         $CompressVars = @{
-            Path = "${CheckoutDir}/build32/install/bin", "${CheckoutDir}/build32/install/data", "${CheckoutDir}/build32/install/obs-plugins"
+            Path = "${CheckoutDir}/build32/install/bin", "${CheckoutDir}/build32/install/data"
             CompressionLevel = "Optimal"
             DestinationPath = "${FileName}-x86.zip"
         }
