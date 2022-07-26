@@ -58,6 +58,7 @@ _configure_obs() {
         -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} \
         -DLINUX_PORTABLE=${PORTABLE_BUILD:-OFF} \
         -DENABLE_AJA=OFF \
+	-D CMAKE_INSTALL_PREFIX=/usr \
         -D ENABLE_PLUGINS=OFF \
         -D ENABLE_UI=OFF \
         ${PIPEWIRE_OPTION} \
