@@ -1576,7 +1576,6 @@ Functions used by transitions
 ---------------------
 
 .. function:: void obs_transition_video_render(obs_source_t *transition, obs_transition_video_render_callback_t callback)
-              void obs_transition_video_render2(obs_source_t *transition, obs_transition_video_render_callback_t callback, gs_texture_t *placeholder_texture)
 
    Helper function used for rendering transitions.  This function will
    render two distinct textures for source A and source B of the
@@ -1587,10 +1586,6 @@ Functions used by transitions
    textures of source A and source B, *t* is the time value
    (0.0f..1.0f), *cx* and *cy* are the current dimensions of the
    transition, and *data* is the implementation's private data.
-
-   The *placeholder_texture* parameter allows a callback to receive
-   a replacement that isn't the default transparent texture, including
-   NULL if the caller desires.
 
    Relevant data types used with this function:
 

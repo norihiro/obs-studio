@@ -726,15 +726,6 @@ void obs_transition_force_stop(obs_source_t *transition)
 void obs_transition_video_render(obs_source_t *transition,
 				 obs_transition_video_render_callback_t callback)
 {
-	obs_transition_video_render2(transition, callback,
-				     obs->video.transparent_texture);
-}
-
-void obs_transition_video_render2(
-	obs_source_t *transition,
-	obs_transition_video_render_callback_t callback,
-	gs_texture_t *placeholder_texture)
-{
 	struct transition_state state;
 	struct matrix4 matrices[2];
 	bool locked = false;
@@ -782,9 +773,9 @@ void obs_transition_video_render2(
 					     source_space);
 				tex[i] = get_texture(transition, i);
 				if (!tex[i])
-					tex[i] = placeholder_texture;
+					tex[i] = obs->video.transparent_texture;
 			} else {
-				tex[i] = placeholder_texture;
+				tex[i] = obs->video.transparent_texture;
 			}
 		}
 
