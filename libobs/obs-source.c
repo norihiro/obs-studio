@@ -2230,19 +2230,10 @@ static bool update_async_texrender(struct obs_source *source,
 		set_eparam(conv, "height_d2", (float)cy * 0.5f);
 		set_eparam(conv, "width_x2_i", 0.5f / (float)cx);
 
-		/* BT.2408 says higher than 1000 isn't comfortable */
-		float hlg_peak_level = obs->video.hdr_nominal_peak_level;
-		if (hlg_peak_level > 1000.f)
-			hlg_peak_level = 1000.f;
-
-		const float maximum_nits = (frame->trc == VIDEO_TRC_HLG)
-						   ? hlg_peak_level
-						   : 10000.f;
+		const float maximum_nits =
+			(frame->trc == VIDEO_TRC_HLG) ? 1000.f : 10000.f;
 		set_eparam(conv, "maximum_over_sdr_white_nits",
 			   maximum_nits / obs_get_video_sdr_white_level());
-		const float hlg_exponent =
-			0.2f + (0.42f * log10f(hlg_peak_level / 1000.f));
-		set_eparam(conv, "hlg_exponent", hlg_exponent);
 
 		struct vec4 vec0, vec1, vec2;
 		vec4_set(&vec0, frame->color_matrix[0], frame->color_matrix[1],

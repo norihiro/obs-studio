@@ -26,8 +26,6 @@ uniform float     height_d2;
 uniform float     width_x2_i;
 uniform float     maximum_over_sdr_white_nits;
 uniform float     sdr_white_nits_over_maximum;
-uniform float     hlg_exponent;
-uniform float     hlg_lw;
 
 uniform float4    color_vec0;
 uniform float4    color_vec1;
@@ -215,7 +213,7 @@ float PS_P010_HLG_Y_709_2020(FragPos frag_in) : TARGET
 {
 	float3 rgb = image.Load(int3(frag_in.pos.xy, 0)).rgb * sdr_white_nits_over_maximum;
 	rgb = rec709_to_rec2020(rgb);
-	rgb = linear_to_hlg(rgb, hlg_lw);
+	rgb = linear_to_hlg(rgb);
 	float y = dot(color_vec0.xyz, rgb) + color_vec0.w;
 	y = floor(saturate(y) * 1023. + 0.5) * (64. / 65535.);
 	return y;
@@ -243,7 +241,7 @@ float PS_I010_HLG_Y_709_2020(FragPos frag_in) : TARGET
 {
 	float3 rgb = image.Load(int3(frag_in.pos.xy, 0)).rgb * sdr_white_nits_over_maximum;
 	rgb = rec709_to_rec2020(rgb);
-	rgb = linear_to_hlg(rgb, hlg_lw);
+	rgb = linear_to_hlg(rgb);
 	float y = dot(color_vec0.xyz, rgb) + color_vec0.w;
 	return y * (1023. / 65535.);
 }
@@ -290,7 +288,7 @@ float2 PS_P010_HLG_UV_709_2020_WideWide(FragTexWideWide frag_in) : TARGET
 	float3 rgb_bottomright = image.Sample(def_sampler, frag_in.uuvv.yw).rgb;
 	float3 rgb = (rgb_topleft + rgb_topright + rgb_bottomleft + rgb_bottomright) * (0.25 * sdr_white_nits_over_maximum);
 	rgb = rec709_to_rec2020(rgb);
-	rgb = linear_to_hlg(rgb, hlg_lw);
+	rgb = linear_to_hlg(rgb);
 	float u = dot(color_vec1.xyz, rgb) + color_vec1.w;
 	float v = dot(color_vec2.xyz, rgb) + color_vec2.w;
 	float2 uv = float2(u, v);
@@ -366,7 +364,7 @@ float PS_I010_HLG_U_709_2020_WideWide(FragTexWideWide frag_in) : TARGET
 	float3 rgb_bottomright = image.Sample(def_sampler, frag_in.uuvv.yw).rgb;
 	float3 rgb = (rgb_topleft + rgb_topright + rgb_bottomleft + rgb_bottomright) * (0.25 * sdr_white_nits_over_maximum);
 	rgb = rec709_to_rec2020(rgb);
-	rgb = linear_to_hlg(rgb, hlg_lw);
+	rgb = linear_to_hlg(rgb);
 	float u = dot(color_vec1.xyz, rgb) + color_vec1.w;
 	return u * (1023. / 65535.);
 }
@@ -404,7 +402,7 @@ float PS_I010_HLG_V_709_2020_WideWide(FragTexWideWide frag_in) : TARGET
 	float3 rgb_bottomright = image.Sample(def_sampler, frag_in.uuvv.yw).rgb;
 	float3 rgb = (rgb_topleft + rgb_topright + rgb_bottomleft + rgb_bottomright) * (0.25 * sdr_white_nits_over_maximum);
 	rgb = rec709_to_rec2020(rgb);
-	rgb = linear_to_hlg(rgb, hlg_lw);
+	rgb = linear_to_hlg(rgb);
 	float v = dot(color_vec2.xyz, rgb) + color_vec2.w;
 	return v * (1023. / 65535.);
 }
@@ -642,7 +640,7 @@ float4 PSI010_HLG_2020_709_Reverse(VertTexPos frag_in) : TARGET
 	float cr = image2.Load(xy0_chroma).x * ratio;
 	float3 yuv = float3(y, cb, cr);
 	float3 hlg = YUV_to_RGB(yuv);
-	float3 hdr2020 = hlg_to_linear(hlg, hlg_exponent) * maximum_over_sdr_white_nits;
+	float3 hdr2020 = hlg_to_linear(hlg) * maximum_over_sdr_white_nits;
 	float3 rgb = rec2020_to_rec709(hdr2020);
 	return float4(rgb, 1.);
 }
@@ -680,7 +678,7 @@ float4 PSP010_HLG_2020_709_Reverse(VertTexPos frag_in) : TARGET
 	float3 yuv_1023 = floor(yuv_65535 * 0.015625);
 	float3 yuv = yuv_1023 / 1023.;
 	float3 hlg = YUV_to_RGB(yuv);
-	float3 hdr2020 = hlg_to_linear(hlg, hlg_exponent) * maximum_over_sdr_white_nits;
+	float3 hdr2020 = hlg_to_linear(hlg) * maximum_over_sdr_white_nits;
 	float3 rgb = rec2020_to_rec709(hdr2020);
 	return float4(rgb, 1.);
 }
