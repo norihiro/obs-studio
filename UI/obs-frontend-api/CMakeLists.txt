@@ -32,8 +32,6 @@ if(OS_WINDOWS)
                  obs-frontend-api.rc)
 
   target_sources(obs-frontend-api PRIVATE obs-frontend-api.rc)
-elseif(OS_MACOS)
-  set_target_properties(obs-frontend-api PROPERTIES SOVERSION "1")
 endif()
 
 setup_binary_target(obs-frontend-api)
