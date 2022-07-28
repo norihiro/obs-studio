@@ -2902,11 +2902,7 @@ obs_source_get_color_space(obs_source_t *source, size_t count,
 		return space;
 	}
 
-	assert(source->context.data);
-	return source->info.video_get_color_space
-		       ? source->info.video_get_color_space(
-				 source->context.data, count, preferred_spaces)
-		       : GS_CS_SRGB;
+	return GS_CS_SRGB;
 }
 
 uint32_t obs_source_get_base_width(obs_source_t *source)
