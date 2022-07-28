@@ -2243,9 +2243,6 @@ static bool update_async_texrender(struct obs_source *source,
 		const float hlg_exponent =
 			0.2f + (0.42f * log10f(hlg_peak_level / 1000.f));
 		set_eparam(conv, "hlg_exponent", hlg_exponent);
-		set_eparam(conv, "hdr_lw", (float)frame->max_luminance);
-		set_eparam(conv, "hdr_lmax",
-			   obs_get_video_hdr_nominal_peak_level());
 
 		struct vec4 vec0, vec1, vec2;
 		vec4_set(&vec0, frame->color_matrix[0], frame->color_matrix[1],
@@ -3234,7 +3231,6 @@ static void copy_frame_data(struct obs_source_frame *dst,
 	dst->flags = src->flags;
 	dst->trc = src->trc;
 	dst->full_range = src->full_range;
-	dst->max_luminance = src->max_luminance;
 	dst->timestamp = src->timestamp;
 	memcpy(dst->color_matrix, src->color_matrix, sizeof(float) * 16);
 	if (!dst->full_range) {
@@ -3474,7 +3470,7 @@ void obs_source_output_video2(obs_source_t *source,
 		return;
 	}
 
-	struct obs_source_frame new_frame = {0};
+	struct obs_source_frame new_frame;
 	enum video_range_type range =
 		resolve_video_range(frame->format, frame->range);
 
@@ -3488,7 +3484,6 @@ void obs_source_output_video2(obs_source_t *source,
 	new_frame.timestamp = frame->timestamp;
 	new_frame.format = frame->format;
 	new_frame.full_range = range == VIDEO_RANGE_FULL;
-	new_frame.max_luminance = 0;
 	new_frame.flip = frame->flip;
 	new_frame.flags = frame->flags;
 	new_frame.trc = frame->trc;
@@ -3616,7 +3611,7 @@ void obs_source_preload_video2(obs_source_t *source,
 		return;
 	}
 
-	struct obs_source_frame new_frame = {0};
+	struct obs_source_frame new_frame;
 	enum video_range_type range =
 		resolve_video_range(frame->format, frame->range);
 
@@ -3630,7 +3625,6 @@ void obs_source_preload_video2(obs_source_t *source,
 	new_frame.timestamp = frame->timestamp;
 	new_frame.format = frame->format;
 	new_frame.full_range = range == VIDEO_RANGE_FULL;
-	new_frame.max_luminance = 0;
 	new_frame.flip = frame->flip;
 	new_frame.flags = frame->flags;
 	new_frame.trc = frame->trc;
@@ -3728,7 +3722,7 @@ void obs_source_set_video_frame2(obs_source_t *source,
 		return;
 	}
 
-	struct obs_source_frame new_frame = {0};
+	struct obs_source_frame new_frame;
 	enum video_range_type range =
 		resolve_video_range(frame->format, frame->range);
 
@@ -3742,7 +3736,6 @@ void obs_source_set_video_frame2(obs_source_t *source,
 	new_frame.timestamp = frame->timestamp;
 	new_frame.format = frame->format;
 	new_frame.full_range = range == VIDEO_RANGE_FULL;
-	new_frame.max_luminance = 0;
 	new_frame.flip = frame->flip;
 	new_frame.flags = frame->flags;
 	new_frame.trc = frame->trc;
