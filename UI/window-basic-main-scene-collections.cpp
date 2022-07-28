@@ -276,6 +276,9 @@ void OBSBasic::on_actionRenameSceneCollection_triggered()
 		return;
 	}
 
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_SCENE_COLLECTION_CHANGING);
+
 	oldFile.insert(0, path);
 	oldFile += ".json";
 	os_unlink(oldFile.c_str());
@@ -290,8 +293,10 @@ void OBSBasic::on_actionRenameSceneCollection_triggered()
 	UpdateTitleBar();
 	RefreshSceneCollections();
 
-	if (api)
-		api->on_event(OBS_FRONTEND_EVENT_SCENE_COLLECTION_RENAMED);
+	if (api) {
+		api->on_event(OBS_FRONTEND_EVENT_SCENE_COLLECTION_LIST_CHANGED);
+		api->on_event(OBS_FRONTEND_EVENT_SCENE_COLLECTION_CHANGED);
+	}
 }
 
 void OBSBasic::on_actionRemoveSceneCollection_triggered()
