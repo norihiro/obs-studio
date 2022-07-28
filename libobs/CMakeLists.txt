@@ -40,7 +40,6 @@ target_sources(
           obs-nal.h
           obs-hotkey-name-map.c
           obs-interaction.h
-          obs-internal.h
           obs-module.c
           obs-module.h
           obs-output.c
@@ -51,7 +50,6 @@ target_sources(
           obs-service.c
           obs-service.h
           obs-scene.c
-          obs-scene.h
           obs-source.c
           obs-source.h
           obs-source-deinterlace.c
