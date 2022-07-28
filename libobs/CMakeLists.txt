@@ -362,8 +362,7 @@ elseif(OS_MACOS)
                               PROPERTIES COMPILE_FLAGS -fobjc-arc)
 
   set_target_properties(
-    libobs PROPERTIES SOVERSION "1" BUILD_RPATH
-                                    "$<TARGET_FILE_DIR:OBS::libobs-opengl>")
+    libobs PROPERTIES BUILD_RPATH "$<TARGET_FILE_DIR:OBS::libobs-opengl>")
 
 elseif(OS_POSIX)
   if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
