@@ -6,6 +6,7 @@ on:
     branches:
       - master
       - 28-pkg-for-plugins
+      - 28-pkg-for-plugins-27-frontendapi
       - 'release/**'
     tags: ['*']
   pull_request:
