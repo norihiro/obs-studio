@@ -47,31 +47,21 @@ notarize_obs() {
         exit 1
     fi
 
-    if ! exists xcnotary; then
-        step "Install notarization dependency 'xcnotary'"
-        brew install akeru-inc/tap/xcnotary
-    fi
-
     ensure_dir "${CHECKOUT_DIR}"
 
     if [ "${NOTARIZE_IMAGE}" ]; then
         trap "_caught_error_xcnotary '${NOTARIZE_IMAGE}'" ERR
 
-        step "Attach OBS disk image ${NOTARIZE_IMAGE}..."
-        hdiutil attach -readonly -noverify -noautoopen -quiet "${NOTARIZE_IMAGE}"
+        step "Verify OBS disk image ${NOTARIZE_IMAGE}..."
+        hdiutil verify "${NOTARIZE_IMAGE}"
 
-        VOLUME_NAME=$(hdiutil info -plist | grep "/Volumes/OBS-" | sed 's/<string>\/Volumes\/\([^<]*\)<\/string>/\1/' | sed -e 's/^[[:space:]]*//')
-        PRECHECK="/Volumes/${VOLUME_NAME}/OBS.app"
         NOTARIZE_TARGET="${NOTARIZE_IMAGE}"
     elif [ "${NOTARIZE_BUNDLE}" ]; then
-        PRECHECK="${NOTARIZE_BUNDLE}"
         NOTARIZE_TARGET="${NOTARIZE_BUNDLE}"
     else
         OBS_IMAGE="${BUILD_DIR}/${FILE_NAME}"
 
         if [ -f "${OBS_IMAGE}" ]; then
-            OBS_BUNDLE=$(/usr/bin/find "${BUILD_DIR}/_CPack_Packages" -type d -name "OBS.app")
-            PRECHECK="${OBS_BUNDLE}"
             NOTARIZE_TARGET="${OBS_IMAGE}"
         else
             error "No notarization application bundle ('OBS.app') or disk image ('${NOTARIZE_IMAGE:-${FILE_NAME}}') found"
@@ -79,20 +69,15 @@ notarize_obs() {
         fi
     fi
 
-    step "Run notarization pre-checks on OBS.app..."
-    xcnotary precheck "${PRECHECK}"
-
     if [ "$?" -eq 0 ]; then
         read_codesign_ident
         read_codesign_pass
 
-        step "Run xcnotary with ${NOTARIZE_TARGET}..."
-        xcnotary notarize "${NOTARIZE_TARGET}" --developer-account "${CODESIGN_IDENT_USER}" --developer-password-keychain-item "OBS-Codesign-Password" --provider "${CODESIGN_IDENT_SHORT}"
-    fi
+        step "Notarize ${NOTARIZE_TARGET}..."
+        /usr/bin/xcrun notarytool submit "${NOTARIZE_TARGET}" --keychain-profile "OBS-Codesign-Password" --wait
 
-    if [ "${NOTARIZE_IMAGE}" -a -d "/Volumes/${VOLUME_NAME}" ]; then
-        step "Detach OBS disk image ${NOTARIZE_IMAGE}..."
-        hdiutil detach "/Volumes/${VOLUME_NAME}" -quiet
+        step "Staple the ticket to ${NOTARIZE_TARGET}..."
+        /usr/bin/xcrun stapler staple "${NOTARIZE_TARGET}"
     fi
 }
 
