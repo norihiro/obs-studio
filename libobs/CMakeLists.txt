@@ -444,6 +444,7 @@ elseif(OS_POSIX)
 
   if(OS_LINUX)
     target_link_libraries(glad PRIVATE ${CMAKE_DL_LIBS})
+    target_sources(libobs PRIVATE util/platform-nix-gnu.c)
   endif()
 
   if(OS_FREEBSD)

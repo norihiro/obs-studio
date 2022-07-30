@@ -97,6 +97,10 @@ static inline char *get_module_name(const char *file)
 extern void reset_win32_symbol_paths(void);
 #endif
 
+#if !defined(_WIN32) && !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__OpenBSD__)
+extern bool obs_plugin_check_qt_version(void *module, const char *name);
+#endif
+
 int obs_open_module(obs_module_t **module, const char *path,
 		    const char *data_path)
 {
@@ -128,6 +132,16 @@ int obs_open_module(obs_module_t **module, const char *path,
 	errorcode = load_module_exports(&mod, path);
 	if (errorcode != MODULE_SUCCESS)
 		return errorcode;
+
+#if !defined(_WIN32) && !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__OpenBSD__)
+	/* HACK: Do not load plugins that rely different Qt version. OBS on
+	 * Linux and it's plugins rely system Qt library so that linking Qt
+	 * version has to be checked.  */
+	if (!obs_plugin_check_qt_version(mod.module, path)) {
+		os_dlclose(mod.module);
+		return MODULE_INCOMPATIBLE_VER;
+	}
+#endif
 
 	mod.bin_path = bstrdup(path);
 	mod.file = strrchr(mod.bin_path, '/');
