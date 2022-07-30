@@ -14,6 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#define _GNU_SOURCE // for dlinfo
 #include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -22,6 +23,7 @@
 #include <dirent.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <link.h>
 #include <dlfcn.h>
 #include <unistd.h>
 #include <glob.h>
@@ -55,6 +57,28 @@
 #include "platform.h"
 #include "threading.h"
 
+#ifndef __APPLE__
+static bool check_qt5(void *mod, const char *name)
+{
+	struct link_map *list = NULL;
+	if (dlinfo(mod, RTLD_DI_LINKMAP, &list) == 0) {
+		for (struct link_map *ptr = list; ptr; ptr = ptr->l_next) {
+			char *slash = strrchr(ptr->l_name, '/');
+			if (!slash)
+				continue;
+			char *base = slash + 1;
+			if (strncmp(base, "libQt5", 6) == 0) {
+				blog(LOG_ERROR, "'%s' links Qt5 library '%s'",
+				     name, ptr->l_name);
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+#endif
+
 void *os_dlopen(const char *path)
 {
 	struct dstr dylib_name;
@@ -80,6 +104,12 @@ void *os_dlopen(const char *path)
 	if (!res)
 		blog(LOG_ERROR, "os_dlopen(%s->%s): %s\n", path,
 		     dylib_name.array, dlerror());
+
+	if (res && !check_qt5(res, dylib_name.array)) {
+		blog(LOG_ERROR, "module '%s' links qt5", dylib_name.array);
+		dlclose(res);
+		res = NULL;
+	}
 
 	dstr_free(&dylib_name);
 	return res;
