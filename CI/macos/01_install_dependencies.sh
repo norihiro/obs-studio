@@ -135,9 +135,6 @@ install_dependencies() {
     BUILD_DEPS=(
         "obs-deps ${MACOS_DEPS_VERSION:-${CI_DEPS_VERSION}} ${MACOS_DEPS_HASH:-${CI_DEPS_HASH}}"
         "qt-deps ${MACOS_DEPS_VERSION:-${CI_DEPS_VERSION}} ${QT_HASH:-${CI_QT_HASH}}"
-        "cef ${MACOS_CEF_BUILD_VERSION:-${CI_MACOS_CEF_VERSION}} ${CEF_HASH:-${CI_CEF_HASH}}"
-        "vlc ${VLC_VERSION:-${CI_VLC_VERSION}} ${VLC_HASH:-${CI_VLC_HASH}}"
-        "sparkle ${SPARKLE_VERSION:-${CI_SPARKLE_VERSION}} ${SPARKLE_HASH:-${CI_SPARKLE_HASH}}"
     )
 
     install_homebrew_deps
