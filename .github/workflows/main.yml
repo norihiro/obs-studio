@@ -73,7 +73,6 @@ jobs:
       matrix:
         arch: ['x86_64', 'arm64', 'universal']
     if: always()
-    needs: [clang_check]
     env:
       MACOSX_DEPLOYMENT_TARGET_X86_64: '10.15'
       MACOSX_DEPLOYMENT_TARGET_ARM64: '11.0'
@@ -197,7 +196,6 @@ jobs:
       matrix:
         ubuntu: ['ubuntu-20.04', 'ubuntu-22.04']
     if: always()
-    needs: [clang_check]
     defaults:
       run:
         shell: bash
@@ -275,7 +273,6 @@ jobs:
   windows_build:
     name: '02 - Windows'
     runs-on: [windows-2022]
-    needs: [clang_check]
     if: always()
     strategy:
       matrix:
