@@ -27,6 +27,7 @@ env:
   DEPS_VERSION_MAC: '2022-08-02'
   DEPS_HASH_MAC_X86_64: '7637e52305e6fc53014b5aabd583f1a4490b1d97450420e977cae9a336a29525'
   DEPS_HASH_MAC_ARM64: '755e0fa69b17a3ae444e1befa9d91d77e3cafe628fbd1c6333686091826595cd'
+  DEPS_HASH_MAC_UNIVERSAL: 'de057e73e6fe0825664c258ca2dd6798c41ae580bf4d896e1647676a4941934a'
   DEPS_VERSION_WIN: '2022-08-02'
   VLC_VERSION_MAC: '3.0.8'
   VLC_HASH_MAC: 'e0149ef4a20a19b9ecd87309c2d27787ee3f47dfd47c6639644bc1f6fd95bdf6'
@@ -70,7 +71,7 @@ jobs:
     runs-on: [macos-12]
     strategy:
       matrix:
-        arch: ['x86_64', 'arm64']
+        arch: ['x86_64', 'arm64', 'universal']
     if: always()
     needs: [clang_check]
     env:
