@@ -354,7 +354,7 @@ static obs_properties_t *obs_qsv_props(void *unused)
 
 	obs_property_set_modified_callback(prop, profile_modified);
 
-	prop = obs_properties_add_int(props, "keyint_sec", TEXT_KEYINT_SEC, 1,
+	prop = obs_properties_add_int(props, "keyint_sec", TEXT_KEYINT_SEC, 0,
 				      20, 1);
 	obs_property_int_set_suffix(prop, " s");
 
@@ -669,7 +669,7 @@ static void *obs_qsv_create(obs_data_t *settings, obs_encoder_t *encoder)
 	// MSDK 1.6 or less doesn't have automatic DTS calculation
 	// including early SandyBridge.
 	// Need to add manual DTS from PTS.
-	if (g_verMajor == 1 && g_verMinor < 7) {
+	if (g_verMajor == 1 && g_verMinor < 7 && obsqsv->params.nKeyIntSec) {
 		int64_t interval = obsqsv->params.nbFrames + 1;
 		int64_t GopPicSize = (int64_t)(obsqsv->params.nKeyIntSec *
 					       obsqsv->params.nFpsNum /
