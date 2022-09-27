@@ -259,6 +259,7 @@ void os_sleep_ms(uint32_t duration)
 
 uint64_t os_gettime_ns(void)
 {
+	// TODO: the profiler also uses os_gettime_ns, which should not use the compensated time.
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return os_time_compensation_ns((uint64_t)ts.tv_sec * 1000000000ULL +

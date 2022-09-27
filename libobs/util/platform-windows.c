@@ -431,7 +431,7 @@ bool os_sleepto_ns(uint64_t time_target)
 {
 	const uint64_t freq = get_clockfreq();
 	int64_t compensation_offset = os_time_compensation_peek_offset_ns();
-	if (compensation_offset < time_target)
+	if (compensation_offset < 0 || (uint64_t)compensation_offset < time_target)
 		time_target -= compensation_offset;
 	else
 		time_target = 0;
