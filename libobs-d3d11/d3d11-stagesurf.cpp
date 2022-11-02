@@ -43,12 +43,12 @@ gs_stage_surface::gs_stage_surface(gs_device_t *device, uint32_t width,
 }
 
 gs_stage_surface::gs_stage_surface(gs_device_t *device, uint32_t width,
-				   uint32_t height, bool p010)
+				   uint32_t height)
 	: gs_obj(device, gs_type::gs_stage_surface),
 	  width(width),
 	  height(height),
 	  format(GS_UNKNOWN),
-	  dxgiFormat(p010 ? DXGI_FORMAT_P010 : DXGI_FORMAT_NV12)
+	  dxgiFormat(DXGI_FORMAT_NV12)
 {
 	HRESULT hr;
 
