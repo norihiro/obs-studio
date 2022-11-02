@@ -552,7 +552,6 @@ static inline bool item_is_scene(const struct obs_scene_item *item)
 static inline bool item_texture_enabled(const struct obs_scene_item *item)
 {
 	return crop_enabled(&item->crop) || scale_filter_enabled(item) ||
-	       (item->blend_method == OBS_BLEND_METHOD_SRGB_OFF) ||
 	       !default_blending_enabled(item) ||
 	       (item_is_scene(item) && !item->is_group);
 }
@@ -709,10 +708,7 @@ static inline void render_item(struct obs_scene_item *item)
 		}
 	}
 
-	const bool linear_srgb =
-		!item->item_render ||
-		(item->blend_method != OBS_BLEND_METHOD_SRGB_OFF);
-	const bool previous = gs_set_linear_srgb(linear_srgb);
+	const bool previous = gs_set_linear_srgb(true);
 	gs_matrix_push();
 	gs_matrix_mul(&item->draw_transform);
 	if (item->item_render) {
@@ -872,7 +868,6 @@ static void scene_load_item(struct obs_scene *scene, obs_data_t *item_data)
 	const char *name = obs_data_get_string(item_data, "name");
 	obs_source_t *source;
 	const char *scale_filter_str;
-	const char *blend_method_str;
 	const char *blend_str;
 	struct obs_scene_item *item;
 	bool visible;
@@ -951,14 +946,6 @@ static void scene_load_item(struct obs_scene *scene, obs_data_t *item_data)
 			item->scale_filter = OBS_SCALE_LANCZOS;
 		else if (astrcmpi(scale_filter_str, "area") == 0)
 			item->scale_filter = OBS_SCALE_AREA;
-	}
-
-	blend_method_str = obs_data_get_string(item_data, "blend_method");
-	item->blend_method = OBS_BLEND_METHOD_DEFAULT;
-
-	if (blend_method_str) {
-		if (astrcmpi(blend_method_str, "srgb_off") == 0)
-			item->blend_method = OBS_BLEND_METHOD_SRGB_OFF;
 	}
 
 	blend_str = obs_data_get_string(item_data, "blend_type");
@@ -1050,7 +1037,6 @@ static void scene_save_item(obs_data_array_t *array,
 	obs_data_t *item_data = obs_data_create();
 	const char *name = obs_source_get_name(item->source);
 	const char *scale_filter;
-	const char *blend_method;
 	const char *blend_type;
 	struct vec2 pos = item->pos;
 	struct vec2 scale = item->scale;
@@ -1109,13 +1095,6 @@ static void scene_save_item(obs_data_array_t *array,
 		scale_filter = "disable";
 
 	obs_data_set_string(item_data, "scale_filter", scale_filter);
-
-	if (item->blend_method == OBS_BLEND_METHOD_SRGB_OFF)
-		blend_method = "srgb_off";
-	else
-		blend_method = "default";
-
-	obs_data_set_string(item_data, "blend_method", blend_method);
 
 	if (item->blend_type == OBS_BLEND_NORMAL)
 		blend_type = "normal";
@@ -2901,23 +2880,6 @@ enum obs_scale_type obs_sceneitem_get_scale_filter(obs_sceneitem_t *item)
 	return obs_ptr_valid(item, "obs_sceneitem_get_scale_filter")
 		       ? item->scale_filter
 		       : OBS_SCALE_DISABLE;
-}
-
-void obs_sceneitem_set_blending_method(obs_sceneitem_t *item,
-				       enum obs_blending_method method)
-{
-	if (!obs_ptr_valid(item, "obs_sceneitem_set_blending_method"))
-		return;
-
-	item->blend_method = method;
-}
-
-enum obs_blending_method
-obs_sceneitem_get_blending_method(obs_sceneitem_t *item)
-{
-	return obs_ptr_valid(item, "obs_sceneitem_get_blending_method")
-		       ? item->blend_method
-		       : OBS_BLEND_NORMAL;
 }
 
 void obs_sceneitem_set_blending_mode(obs_sceneitem_t *item,
