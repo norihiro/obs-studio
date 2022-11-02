@@ -1658,8 +1658,7 @@ float obs_get_master_volume(void)
 	return obs->audio.user_volume;
 }
 
-static obs_source_t *obs_load_source_type(obs_data_t *source_data,
-					  bool is_private)
+static obs_source_t *obs_load_source_type(obs_data_t *source_data)
 {
 	obs_data_array_t *filters = obs_data_get_array(source_data, "filters");
 	obs_source_t *source;
@@ -1685,7 +1684,7 @@ static obs_source_t *obs_load_source_type(obs_data_t *source_data,
 		v_id = id;
 
 	source = obs_source_create_set_last_ver(v_id, name, settings, hotkeys,
-						prev_ver, is_private);
+						prev_ver);
 	if (source->owns_info_id) {
 		bfree((void *)source->info.unversioned_id);
 		source->info.unversioned_id = bstrdup(id);
@@ -1773,7 +1772,7 @@ static obs_source_t *obs_load_source_type(obs_data_t *source_data,
 				obs_data_array_item(filters, i);
 
 			obs_source_t *filter =
-				obs_load_source_type(filter_data, true);
+				obs_load_source_type(filter_data);
 			if (filter) {
 				obs_source_filter_add(source, filter);
 				obs_source_release(filter);
@@ -1792,12 +1791,7 @@ static obs_source_t *obs_load_source_type(obs_data_t *source_data,
 
 obs_source_t *obs_load_source(obs_data_t *source_data)
 {
-	return obs_load_source_type(source_data, false);
-}
-
-obs_source_t *obs_load_private_source(obs_data_t *source_data)
-{
-	return obs_load_source_type(source_data, true);
+	return obs_load_source_type(source_data);
 }
 
 void obs_load_sources(obs_data_array_t *array, obs_load_source_cb cb,
