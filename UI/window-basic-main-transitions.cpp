@@ -1095,7 +1095,7 @@ QMenu *OBSBasic::CreatePerSceneTransitionMenu()
 void OBSBasic::on_actionShowTransitionProperties_triggered()
 {
 	OBSSceneItem item = GetCurrentSceneItem();
-	OBSSource source = obs_sceneitem_get_transition(item, true);
+	OBSSource source = obs_sceneitem_get_show_transition(item);
 
 	if (source)
 		CreatePropertiesWindow(source);
@@ -1104,7 +1104,7 @@ void OBSBasic::on_actionShowTransitionProperties_triggered()
 void OBSBasic::on_actionHideTransitionProperties_triggered()
 {
 	OBSSceneItem item = GetCurrentSceneItem();
-	OBSSource source = obs_sceneitem_get_transition(item, false);
+	OBSSource source = obs_sceneitem_get_hide_transition(item);
 
 	if (source)
 		CreatePropertiesWindow(source);
@@ -1161,11 +1161,14 @@ QMenu *OBSBasic::CreateVisibilityTransitionMenu(bool visible)
 		new QMenu(QTStr(visible ? "ShowTransition" : "HideTransition"));
 	QAction *action;
 
-	OBSSource curTransition = obs_sceneitem_get_transition(si, visible);
+	OBSSource curTransition =
+		visible ? obs_sceneitem_get_show_transition(si)
+			: obs_sceneitem_get_hide_transition(si);
 	const char *curId = curTransition ? obs_source_get_id(curTransition)
 					  : nullptr;
 	int curDuration =
-		(int)obs_sceneitem_get_transition_duration(si, visible);
+		(int)(visible ? obs_sceneitem_get_show_transition_duration(si)
+			      : obs_sceneitem_get_hide_transition_duration(si));
 
 	if (curDuration <= 0)
 		curDuration = obs_frontend_get_transition_duration();
@@ -1204,11 +1207,18 @@ QMenu *OBSBasic::CreateVisibilityTransitionMenu(bool visible)
 		OBSDataAutoRelease oldTransitionData =
 			obs_sceneitem_transition_save(sceneItem, visible);
 		if (id.isNull() || id.isEmpty()) {
-			obs_sceneitem_set_transition(sceneItem, visible,
-						     nullptr);
+			if (visible)
+				obs_sceneitem_set_show_transition(sceneItem,
+								  nullptr);
+			else
+				obs_sceneitem_set_hide_transition(sceneItem,
+								  nullptr);
 		} else {
-			OBSSource tr = obs_sceneitem_get_transition(sceneItem,
-								    visible);
+			OBSSource tr =
+				visible ? obs_sceneitem_get_show_transition(
+						  sceneItem)
+					: obs_sceneitem_get_hide_transition(
+						  sceneItem);
 
 			if (!tr || strcmp(QT_TO_UTF8(id),
 					  obs_source_get_id(tr)) != 0) {
@@ -1220,18 +1230,28 @@ QMenu *OBSBasic::CreateVisibilityTransitionMenu(bool visible)
 				tr = obs_source_create_private(QT_TO_UTF8(id),
 							       QT_TO_UTF8(name),
 							       nullptr);
-				obs_sceneitem_set_transition(sceneItem, visible,
-							     tr);
+				if (visible)
+					obs_sceneitem_set_show_transition(
+						sceneItem, tr);
+				else
+					obs_sceneitem_set_hide_transition(
+						sceneItem, tr);
 				obs_source_release(tr);
 
-				int duration = (int)
-					obs_sceneitem_get_transition_duration(
-						sceneItem, visible);
+				int duration =
+					(int)(visible ? obs_sceneitem_get_show_transition_duration(
+								sceneItem)
+						      : obs_sceneitem_get_hide_transition_duration(
+								sceneItem));
 				if (duration <= 0) {
 					duration =
 						obs_frontend_get_transition_duration();
-					obs_sceneitem_set_transition_duration(
-						sceneItem, visible, duration);
+					if (visible)
+						obs_sceneitem_set_show_transition_duration(
+							sceneItem, duration);
+					else
+						obs_sceneitem_set_hide_transition_duration(
+							sceneItem, duration);
 				}
 			}
 			if (obs_source_configurable(tr))
@@ -1250,15 +1270,31 @@ QMenu *OBSBasic::CreateVisibilityTransitionMenu(bool visible)
 							sceneItem))),
 				undo_redo, undo_redo, undo_data, redo_data);
 	};
-	auto setDuration = [visible](int duration) {
-		OBSBasic *main =
-			reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+	if (visible) {
+		auto setDuration = [](int duration) {
+			OBSBasic *main = reinterpret_cast<OBSBasic *>(
+				App()->GetMainWindow());
 
-		OBSSceneItem item = main->GetCurrentSceneItem();
-		obs_sceneitem_set_transition_duration(item, visible, duration);
-	};
-	connect(duration, (void (QSpinBox::*)(int)) & QSpinBox::valueChanged,
-		setDuration);
+			OBSSceneItem item = main->GetCurrentSceneItem();
+			obs_sceneitem_set_show_transition_duration(item,
+								   duration);
+		};
+		connect(duration,
+			(void (QSpinBox::*)(int)) & QSpinBox::valueChanged,
+			setDuration);
+	} else {
+		auto setDuration = [](int duration) {
+			OBSBasic *main = reinterpret_cast<OBSBasic *>(
+				App()->GetMainWindow());
+
+			OBSSceneItem item = main->GetCurrentSceneItem();
+			obs_sceneitem_set_hide_transition_duration(item,
+								   duration);
+		};
+		connect(duration,
+			(void (QSpinBox::*)(int)) & QSpinBox::valueChanged,
+			setDuration);
+	}
 
 	action = menu->addAction(QT_UTF8(Str("None")));
 	action->setProperty("transition_id", QT_UTF8(""));
