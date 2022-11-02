@@ -170,35 +170,6 @@ static inline void render_display_begin(struct obs_display *display,
 					uint32_t cx, uint32_t cy,
 					bool update_color_space)
 {
-	struct vec4 clear_color;
-
-	gs_load_swapchain(display->swap);
-
-	if ((display->cx != cx) || (display->cy != cy)) {
-		gs_resize(cx, cy);
-		display->cx = cx;
-		display->cy = cy;
-	} else if (update_color_space) {
-		gs_update_color_space();
-	}
-
-	gs_begin_scene();
-
-	if (gs_get_color_space() == GS_CS_SRGB)
-		vec4_from_rgba(&clear_color, display->background_color);
-	else
-		vec4_from_rgba_srgb(&clear_color, display->background_color);
-	clear_color.w = 1.0f;
-
-	gs_clear(GS_CLEAR_COLOR | GS_CLEAR_DEPTH | GS_CLEAR_STENCIL,
-		 &clear_color, 1.0f, 0);
-
-	gs_enable_depth_test(false);
-	/* gs_enable_blending(false); */
-	gs_set_cull_mode(GS_NEITHER);
-
-	gs_ortho(0.0f, (float)cx, 0.0f, (float)cy, -100.0f, 100.0f);
-	gs_set_viewport(0, 0, cx, cy);
 }
 
 static inline void render_display_end()
