@@ -768,9 +768,3 @@ Functions
 
    :return: A new pointer to the current record output path.  Free
             with :c:func:`bfree()`
-
----------------------------------------
-
-.. function:: const char *obs_frontend_get_locale_string(const char *string)
-
-   :return: Gets the frontend translation of a given string.
