@@ -3722,24 +3722,6 @@ void obs_sceneitem_do_transition(obs_sceneitem_t *item, bool visible)
 void obs_sceneitem_transition_load(struct obs_scene_item *item,
 				   obs_data_t *data, bool show)
 {
-	if (!item || !data)
-		return;
-	const char *id = obs_data_get_string(data, "id");
-	if (id && strlen(id)) {
-		const char *tn = obs_data_get_string(data, "name");
-		obs_data_t *s = obs_data_get_obj(data, "transition");
-		obs_source_t *t = obs_source_create_private(id, tn, s);
-		if (show)
-			obs_sceneitem_set_show_transition(item, t);
-		else
-			obs_sceneitem_set_hide_transition(item, t);
-		obs_source_release(t);
-		obs_data_release(s);
-	} else {
-		obs_sceneitem_set_transition(item, show, NULL);
-	}
-	obs_sceneitem_set_transition_duration(
-		item, show, (uint32_t)obs_data_get_int(data, "duration"));
 }
 
 obs_data_t *obs_sceneitem_transition_save(struct obs_scene_item *item,

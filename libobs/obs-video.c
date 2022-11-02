@@ -126,37 +126,6 @@ static inline void unmap_last_surface(struct obs_core_video *video)
 static const char *render_main_texture_name = "render_main_texture";
 static inline void render_main_texture(struct obs_core_video *video)
 {
-	profile_start(render_main_texture_name);
-	GS_DEBUG_MARKER_BEGIN(GS_DEBUG_COLOR_MAIN_TEXTURE,
-			      render_main_texture_name);
-
-	struct vec4 clear_color;
-	vec4_set(&clear_color, 0.0f, 0.0f, 0.0f, 0.0f);
-
-	gs_set_render_target_with_color_space(video->render_texture, NULL,
-					      video->render_space);
-	gs_clear(GS_CLEAR_COLOR, &clear_color, 1.0f, 0);
-
-	set_render_size(video->base_width, video->base_height);
-
-	pthread_mutex_lock(&obs->data.draw_callbacks_mutex);
-
-	for (size_t i = obs->data.draw_callbacks.num; i > 0; i--) {
-		struct draw_callback *callback;
-		callback = obs->data.draw_callbacks.array + (i - 1);
-
-		callback->draw(callback->param, video->base_width,
-			       video->base_height);
-	}
-
-	pthread_mutex_unlock(&obs->data.draw_callbacks_mutex);
-
-	obs_view_render(&obs->data.main_view);
-
-	video->texture_rendered = true;
-
-	GS_DEBUG_MARKER_END();
-	profile_end(render_main_texture_name);
 }
 
 static inline gs_effect_t *

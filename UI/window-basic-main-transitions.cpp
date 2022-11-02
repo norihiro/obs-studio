@@ -1113,44 +1113,6 @@ void OBSBasic::on_actionHideTransitionProperties_triggered()
 void OBSBasic::PasteShowHideTransition(obs_sceneitem_t *item, bool show,
 				       obs_source_t *tr)
 {
-	int64_t sceneItemId = obs_sceneitem_get_id(item);
-	std::string sceneName = obs_source_get_name(
-		obs_scene_get_source(obs_sceneitem_get_scene(item)));
-
-	auto undo_redo = [sceneName, sceneItemId,
-			  show](const std::string &data) {
-		OBSSourceAutoRelease source =
-			obs_get_source_by_name(sceneName.c_str());
-		obs_scene_t *scene = obs_scene_from_source(source);
-		obs_sceneitem_t *i =
-			obs_scene_find_sceneitem_by_id(scene, sceneItemId);
-		if (i) {
-			OBSDataAutoRelease dat =
-				obs_data_create_from_json(data.c_str());
-			obs_sceneitem_transition_load(i, dat, show);
-		}
-	};
-
-	OBSDataAutoRelease oldTransitionData =
-		obs_sceneitem_transition_save(item, show);
-
-	OBSSourceAutoRelease dup =
-		obs_source_duplicate(tr, obs_source_get_name(tr), true);
-	obs_sceneitem_set_transition(item, show, dup);
-
-	OBSDataAutoRelease transitionData =
-		obs_sceneitem_transition_save(item, show);
-
-	std::string undo_data(obs_data_get_json(oldTransitionData));
-	std::string redo_data(obs_data_get_json(transitionData));
-	if (undo_data.compare(redo_data) == 0)
-		return;
-
-	QString text = show ? QTStr("Undo.ShowTransition")
-			    : QTStr("Undo.HideTransition");
-	const char *name = obs_source_get_name(obs_sceneitem_get_source(item));
-	undo_s.add_action(text.arg(name), undo_redo, undo_redo, undo_data,
-			  redo_data);
 }
 
 QMenu *OBSBasic::CreateVisibilityTransitionMenu(bool visible)
