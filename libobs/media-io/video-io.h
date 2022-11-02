@@ -18,7 +18,6 @@
 #pragma once
 
 #include "media-io-defs.h"
-#include "../util/c99defs.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,11 +33,11 @@ typedef struct video_output video_t;
 enum video_format {
 	VIDEO_FORMAT_NONE,
 
-	/* planar 4:2:0 formats */
+	/* planar 420 format */
 	VIDEO_FORMAT_I420, /* three-plane */
 	VIDEO_FORMAT_NV12, /* two-plane, luma and packed chroma */
 
-	/* packed 4:2:2 formats */
+	/* packed 422 formats */
 	VIDEO_FORMAT_YVYU,
 	VIDEO_FORMAT_YUY2, /* YUYV */
 	VIDEO_FORMAT_UYVY,
@@ -69,17 +68,6 @@ enum video_format {
 
 	/* packed 4:4:4 with alpha */
 	VIDEO_FORMAT_AYUV,
-
-	/* planar 4:2:0 format, 10 bpp */
-	VIDEO_FORMAT_I010, /* three-plane */
-	VIDEO_FORMAT_P010, /* two-plane, luma and packed chroma */
-};
-
-enum video_trc {
-	VIDEO_TRC_DEFAULT,
-	VIDEO_TRC_SRGB,
-	VIDEO_TRC_PQ,
-	VIDEO_TRC_HLG,
 };
 
 enum video_colorspace {
@@ -131,8 +119,6 @@ static inline bool format_is_yuv(enum video_format format)
 	case VIDEO_FORMAT_I42A:
 	case VIDEO_FORMAT_YUVA:
 	case VIDEO_FORMAT_AYUV:
-	case VIDEO_FORMAT_I010:
-	case VIDEO_FORMAT_P010:
 		return true;
 	case VIDEO_FORMAT_NONE:
 	case VIDEO_FORMAT_RGBA:
@@ -181,10 +167,6 @@ static inline const char *get_video_format_name(enum video_format format)
 		return "YUVA";
 	case VIDEO_FORMAT_AYUV:
 		return "AYUV";
-	case VIDEO_FORMAT_I010:
-		return "I010";
-	case VIDEO_FORMAT_P010:
-		return "P010";
 	case VIDEO_FORMAT_NONE:;
 	}
 
