@@ -247,6 +247,7 @@ target_link_libraries(
           FFmpeg::swresample
           Jansson::Jansson
           OBS::caption
+          OBS::uthash
           ZLIB::ZLIB
   PUBLIC Threads::Threads)
 
