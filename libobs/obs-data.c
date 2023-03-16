@@ -20,6 +20,7 @@
 #include "util/dstr.h"
 #include "util/darray.h"
 #include "util/platform.h"
+#include "util/uthash.h"
 #include "graphics/vec2.h"
 #include "graphics/vec3.h"
 #include "graphics/vec4.h"
@@ -27,7 +28,6 @@
 #include "obs-data.h"
 
 #include <jansson.h>
-#include <uthash/uthash.h>
 
 struct obs_data_item {
 	volatile long ref;
