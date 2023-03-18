@@ -16,11 +16,6 @@
 
 #pragma once
 
-/*
- * Contains hacks for getting some C99 stuff working in VC, things like
- * bool, stdint
- */
-
 #define UNUSED_PARAMETER(param) (void)param
 
 #ifdef _MSC_VER
