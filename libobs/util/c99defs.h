@@ -64,11 +64,23 @@
 	_Pragma("GCC diagnostic warning \"-Wdeprecated-declarations\"")
 #define PRAGMA_WARN_STRINGOP_OVERFLOW \
 	_Pragma("GCC diagnostic warning \"-Wstringop-overflow\"")
+#define PRAGMA_WARN_USE_AFTER_FREE \
+	_Pragma("GCC diagnostic warning \"-Wuse-after-free\"")
 #else
 #define PRAGMA_WARN_PUSH
 #define PRAGMA_WARN_POP
 #define PRAGMA_WARN_DEPRECATION
 #define PRAGMA_WARN_STRINGOP_OVERFLOW
+#endif
+
+#ifdef __GNUC__
+#define OBS_ALLOC __attribute_malloc__
+#define OBS_ALLOC_NONNULL __attribute_malloc__ __attribute__((returns_nonnull))
+#define OBS_DEALLOC(x) __attr_dealloc(x, 1)
+#else
+#define OBS_ALLOC
+#define OBS_ALLOC_NONNULL
+#define OBS_DEALLOC(x)
 #endif
 
 #include <stddef.h>

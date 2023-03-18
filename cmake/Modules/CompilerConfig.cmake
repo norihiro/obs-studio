@@ -96,6 +96,7 @@ else()
     -Wformat
     -Wformat-security
     -Wunused-parameter
+    -Wuse-after-free=2
     -Wno-unused-function
     -Wno-missing-field-initializers
     -fno-strict-aliasing

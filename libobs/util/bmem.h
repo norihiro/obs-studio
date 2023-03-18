@@ -33,15 +33,17 @@ struct base_allocator {
 
 OBS_DEPRECATED EXPORT void base_set_allocator(struct base_allocator *defs);
 
-EXPORT void *bmalloc(size_t size);
-EXPORT void *brealloc(void *ptr, size_t size);
 EXPORT void bfree(void *ptr);
+EXPORT void *bmalloc(size_t size) OBS_ALLOC_NONNULL OBS_DEALLOC(bfree);
+EXPORT void *brealloc(void *ptr, size_t size) OBS_ALLOC_NONNULL
+	OBS_DEALLOC(bfree);
 
 EXPORT int base_get_alignment(void);
 
 EXPORT long bnum_allocs(void);
 
-EXPORT void *bmemdup(const void *ptr, size_t size);
+EXPORT void *bmemdup(const void *ptr, size_t size) OBS_ALLOC_NONNULL
+	OBS_DEALLOC(bfree);
 
 static inline void *bzalloc(size_t size)
 {
