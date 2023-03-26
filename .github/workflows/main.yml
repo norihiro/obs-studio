@@ -238,7 +238,7 @@ jobs:
         run: cmake --build build -t test
 
       - name: 'Create build artifact'
-        if: ${{ success() && fromJSON(needs.config.outputs.create_artifacts) }}
+        if: ${{ success() && (fromJSON(needs.config.outputs.create_artifacts) || matrix.ubuntu == 'ubuntu-22.04') }}
         run: |
           CI/linux/03_package_obs.sh
           ARTIFACT_NAME=$(basename $(/usr/bin/find build  -maxdepth 1 -type f -name "obs-studio-*.deb" | sort -rn | head -1))
@@ -600,3 +600,45 @@ jobs:
         with:
           name: 'macos-sparkle-updates'
           path: '${{ github.workspace }}/output'
+
+  linux_run:
+    name: '03 - Run OBS Studio on Linux'
+    runs-on: 'ubuntu-22.04'
+    needs: [linux_build]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: 'Setup build environment'
+        id: setup
+        run: |
+          echo "commitHash=$(git rev-parse --short=9 HEAD)" >> $GITHUB_OUTPUT
+
+      - name: 'Download artifact'
+        id: download
+        uses: actions/download-artifact@v3
+        with:
+          name: 'obs-studio-ubuntu-22.04-${{ steps.setup.outputs.commitHash }}'
+
+      - name: 'Install'
+        run: |
+          sudo apt update
+          sudo apt install -y xvfb xdotool qt6-qpa-plugins psmisc vlc
+          sudo apt install -y ${{steps.download.outputs.download-path}}/*.deb
+
+      - name: 'Run OBS Studio'
+        run: |
+          sudo Xvfb -ac :1 -screen 0 1920x1080x24 &> /dev/null &
+          export DISPLAY=:1.0
+          mkdir -p $HOME/.config/obs-studio
+          timeout 5 obs &> /dev/null || true # Ignore the first time launch
+          timeout 20 obs &
+          pid=$!
+          sleep 10
+          killall -s SIGINT obs
+          wait $pid
