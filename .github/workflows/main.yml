@@ -630,6 +630,7 @@ jobs:
           echo "commitHash=$(git rev-parse --short=9 HEAD)" >> $GITHUB_OUTPUT
 
       - name: 'Download artifact'
+        id: download
         uses: actions/download-artifact@v3
         with:
           name: 'obs-studio-ubuntu-22.04-${{ steps.setup.outputs.commitHash }}'
