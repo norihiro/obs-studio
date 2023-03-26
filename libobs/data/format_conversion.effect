@@ -927,9 +927,9 @@ float4 PSP010_HLG_2020_709_Reverse(VertTexPos frag_in) : TARGET
 
 float3 compute_v210_reverse(float2 pos)
 {
-	uint x = (uint)pos.x;
-	uint packed_x = x % 6;
-	uint base_x = (x / 6) * 4;
+	int x = int(pos.x);
+	int packed_x = x % 6;
+	int base_x = x / 6 * 4;
 	float y, cb, cr;
 	if (packed_x == 0)
 	{
@@ -973,7 +973,7 @@ float3 compute_v210_reverse(float2 pos)
 		y = word3_gb.y;
 		cb = image.Load(int3(base_x + 2, pos.y, 0)).b;
 		cr = word3_gb.x;
-		uint base_x_4 = base_x + 4;
+		int base_x_4 = base_x + 4;
 		if ((pos.x + 1.) < width)
 		{
 			float2 word4_gb = image.Load(int3(base_x + 4, pos.y, 0)).rb;
@@ -990,14 +990,14 @@ float3 compute_v210_reverse(float2 pos)
 
 float4 PSV210_SRGB_Reverse(FragPos frag_in) : TARGET
 {
-	float3 rgb = compute_v210_reverse(frag_in.pos);
+	float3 rgb = compute_v210_reverse(frag_in.pos.xy);
 	rgb = srgb_nonlinear_to_linear(rgb);
 	return float4(rgb, 1.);
 }
 
 float4 PSV210_PQ_2020_709_Reverse(FragPos frag_in) : TARGET
 {
-	float3 pq = compute_v210_reverse(frag_in.pos);
+	float3 pq = compute_v210_reverse(frag_in.pos.xy);
 	float3 hdr2020 = st2084_to_linear_eetf(pq, hdr_lw, hdr_lmax) * maximum_over_sdr_white_nits;
 	float3 rgb = rec2020_to_rec709(hdr2020);
 	return float4(rgb, 1.);
@@ -1005,7 +1005,7 @@ float4 PSV210_PQ_2020_709_Reverse(FragPos frag_in) : TARGET
 
 float4 PSV210_HLG_2020_709_Reverse(FragPos frag_in) : TARGET
 {
-	float3 hlg = compute_v210_reverse(frag_in.pos);
+	float3 hlg = compute_v210_reverse(frag_in.pos.xy);
 	float3 hdr2020 = hlg_to_linear(hlg, hlg_exponent) * maximum_over_sdr_white_nits;
 	float3 rgb = rec2020_to_rec709(hdr2020);
 	return float4(rgb, 1.);
