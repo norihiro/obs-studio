@@ -611,10 +611,9 @@ jobs:
           name: 'macos-sparkle-updates'
           path: '${{ github.workspace }}/output'
 
-  linux_test:
+  linux_run:
     name: '03 - Run OBS Studio on Linux'
     runs-on: 'ubuntu-22.04'
-    if: ${{ fromJSON(needs.config.outputs.create_artifacts) }}
     needs: [linux_build]
     defaults:
       run:
