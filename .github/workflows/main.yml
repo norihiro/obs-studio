@@ -642,7 +642,7 @@ jobs:
 
       - name: 'Start VNC Server'
         run: |
-          mkdir .vnc
+          mkdir $HOME/.vnc
           dd if=/dev/random count=1 bs=12 | base64 | vncpasswd -f > $HOME/.vnc/passwd
           chmod 600 $HOME/.vnc/passwd
           vncserver :1
