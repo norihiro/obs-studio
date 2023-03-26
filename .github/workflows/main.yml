@@ -638,7 +638,7 @@ jobs:
       - name: 'Install'
         run: |
           sudo apt update
-          sudo apt install -y tightvncserver xdotool
+          sudo apt install -y tightvncserver xdotool qt6-qpa-plugins psmisc vlc
           sudo apt install -y ${{steps.download.outputs.download-path}}/*.deb
 
       - name: 'Start VNC Server'
@@ -651,6 +651,8 @@ jobs:
       - name: 'Run OBS Studio'
         run: |
           export DISPLAY=:1.0
+          mkdir -p $HOME/.config/obs-studio
+          timeout 5 obs &> /dev/null || true # first time
           timeout 20 obs &
           sleep 10
           killall -s SIGINT obs
