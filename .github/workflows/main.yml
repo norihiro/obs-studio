@@ -654,6 +654,7 @@ jobs:
           mkdir -p $HOME/.config/obs-studio
           timeout 5 obs &> /dev/null || true # first time
           timeout 20 obs &
+          pid=$!
           sleep 10
           killall -s SIGINT obs
-          wait
+          wait $pid
