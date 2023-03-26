@@ -261,7 +261,7 @@ jobs:
         run: cmake --build build -t test
 
       - name: 'Create build artifact'
-        if: ${{ success() && fromJSON(needs.config.outputs.create_artifacts) }}
+        if: ${{ success() && (fromJSON(needs.config.outputs.create_artifacts) || matrix.ubuntu == 'ubuntu-22.04') }}
         run: |
           CI/linux/03_package_obs.sh
           ARTIFACT_NAME=$(basename $(/usr/bin/find build  -maxdepth 1 -type f -name "obs-studio-*.deb" | sort -rn | head -1))
@@ -643,18 +643,17 @@ jobs:
           sudo apt install -y tightvncserver xdotool
           sudo apt install -y ${{steps.download.outputs.download-path}}
 
-      - name: 'Run OBS Studio'
+      - name: 'Start VNC Server'
         run: |
           mkdir .vnc
           dd if=/dev/random count=1 bs=12 | base64 | vncpasswd -f > $HOME/.vnc/passwd
           chmod 600 $HOME/.vnc/passwd
           vncserver :1
+
+      - name: 'Run OBS Studio'
+        run: |
           export DISPLAY=:1.0
-          obs &
+          timeout 20 obs &
           sleep 10
           killall -s SIGINT obs
-          sleep 2
-          killall obs
-          sleep 2
-          killall -s SIGHUP obs
           wait
