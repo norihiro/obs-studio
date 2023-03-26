@@ -610,3 +610,51 @@ jobs:
         with:
           name: 'macos-sparkle-updates'
           path: '${{ github.workspace }}/output'
+
+  linux_test:
+    name: '03 - Run OBS Studio on Linux'
+    runs-on: 'ubuntu-22.04'
+    if: ${{ fromJSON(needs.config.outputs.create_artifacts) }}
+    needs: [linux_build]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+          path: 'obs-studio'
+          fetch-depth: 0
+
+      - name: 'Setup build environment'
+        id: setup
+        run: |
+          echo "commitHash=$(git rev-parse --short=9 HEAD)" >> $GITHUB_OUTPUT
+
+      - name: 'Download artifact'
+        uses: actions/download-artifact@v3
+        with:
+          name: 'obs-studio-ubuntu-22.04-${{ steps.setup.outputs.commitHash }}'
+
+      - name: 'Install'
+        run: |
+          sudo apt update
+          sudo apt install -y tightvncserver xdotool
+          sudo apt install -y ${{steps.download.outputs.download-path}}
+
+      - name: 'Run OBS Studio'
+        run: |
+          mkdir .vnc
+          dd if=/dev/random count=1 bs=12 | base64 | vncpasswd -f > $HOME/.vnc/passwd
+          chmod 600 $HOME/.vnc/passwd
+          vncserver :1
+          export DISPLAY=:1.0
+          obs &
+          sleep 10
+          killall -s SIGINT obs
+          sleep 2
+          killall obs
+          sleep 2
+          killall -s SIGHUP obs
+          wait
