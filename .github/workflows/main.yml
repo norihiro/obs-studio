@@ -638,18 +638,12 @@ jobs:
       - name: 'Install'
         run: |
           sudo apt update
-          sudo apt install -y tightvncserver xdotool qt6-qpa-plugins psmisc vlc
+          sudo apt install -y xvfb xdotool qt6-qpa-plugins psmisc vlc
           sudo apt install -y ${{steps.download.outputs.download-path}}/*.deb
-
-      - name: 'Start VNC Server'
-        run: |
-          mkdir $HOME/.vnc
-          dd if=/dev/random count=1 bs=12 | base64 | vncpasswd -f > $HOME/.vnc/passwd
-          chmod 600 $HOME/.vnc/passwd
-          vncserver :1
 
       - name: 'Run OBS Studio'
         run: |
+          sudo Xvfb -ac :1 -screen 0 1920x1080x24 &> /dev/null &
           export DISPLAY=:1.0
           mkdir -p $HOME/.config/obs-studio
           timeout 5 obs &> /dev/null || true # Ignore the first time launch
