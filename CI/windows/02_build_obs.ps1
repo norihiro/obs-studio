@@ -50,6 +50,8 @@ function Configure-OBS {
     Ensure-Directory ${CheckoutDir}
     Write-Status "Configuration of OBS build system..."
 
+    Invoke-External cmake --version
+
     $NumProcessors = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
 
     if ( $NumProcessors -gt 1 ) {
