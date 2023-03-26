@@ -90,6 +90,7 @@ bool steam = false;
 static bool multi = false;
 static bool log_verbose = false;
 static bool unfiltered_log = false;
+volatile bool error_found = false;
 bool opt_start_streaming = false;
 bool opt_start_recording = false;
 bool opt_studio_mode = false;
@@ -426,6 +427,9 @@ static void do_log(int log_level, const char *msg, va_list args, void *param)
 	if (log_level <= LOG_ERROR && IsDebuggerPresent())
 		__debugbreak();
 #endif
+
+	if (log_level <= LOG_ERROR)
+		os_atomic_set_bool(&error_found, true);
 
 #ifndef _WIN32
 	va_end(args2);
@@ -3429,7 +3433,13 @@ int main(int argc, char *argv[])
 	log_blocked_dlls();
 #endif
 
-	blog(LOG_INFO, "Number of memory leaks: %ld", bnum_allocs());
+	auto mem_leaks = bnum_allocs();
+	blog(mem_leaks ? LOG_ERROR : LOG_INFO, "Number of memory leaks: %ld",
+	     mem_leaks);
 	base_set_log_handler(nullptr, nullptr);
+
+	if (!ret && os_atomic_load_bool(&error_found))
+		ret = 1;
+
 	return ret;
 }
