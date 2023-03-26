@@ -639,7 +639,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y tightvncserver xdotool
-          sudo apt install -y ${{steps.download.outputs.download-path}}
+          sudo apt install -y ${{steps.download.outputs.download-path}}/*.deb
 
       - name: 'Start VNC Server'
         run: |
