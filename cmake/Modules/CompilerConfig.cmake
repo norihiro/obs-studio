@@ -96,7 +96,9 @@ else()
     -Wformat
     -Wformat-security
     -Wunused-parameter
-    -Wuse-after-free=2
+    -Wanalyzer-use-after-free
+    -Wanalyzer-double-free
+    -Wanalyzer-malloc-leak
     -Wno-unused-function
     -Wno-missing-field-initializers
     -fno-strict-aliasing
