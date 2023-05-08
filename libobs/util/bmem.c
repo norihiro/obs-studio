@@ -51,6 +51,8 @@
 #endif
 
 #ifdef BMEM_TRACE
+/* BMEM_TRACE_DEPTH is carefully chosen so that the total offset (diff in the
+ * code) does not exceed the unsigned char type. */
 #define BMEM_TRACE_DEPTH 9
 
 struct bmem_trace {
@@ -65,6 +67,7 @@ struct bmem_trace {
 	((sizeof(struct bmem_trace) + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT)
 #define BMEM_OVERRUN_TEST_BYTE ALIGNMENT
 
+// TODO: Currently using constant value. Use `calc_crc32` to check contents of `struct bmem_trace`.
 #define BMEM_OVERRUN_TEST_CODE 0xB3
 
 static struct bmem_trace *trace_first = NULL;
@@ -83,6 +86,8 @@ char **backtrace_symbols(const void **buffer, int size)
 	char *buffer = malloc(sizeof(char*) * size + sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR) * size);
 	char **result = (char**)buffer;
 	// TODO: implement the rest
+	// Maybe use `SymFromAddr` and `SymGetLineFromAddr64`
+	// https://learn.microsoft.com/ja-jp/windows/win32/debug/retrieving-symbol-information-by-address
 }
 #endif
 
