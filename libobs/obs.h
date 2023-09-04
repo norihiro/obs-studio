@@ -1469,6 +1469,10 @@ EXPORT void obs_source_set_video_frame2(obs_source_t *source,
 EXPORT void obs_source_output_audio(obs_source_t *source,
 				    const struct obs_source_audio *audio);
 
+/** Reroutes audio output data to a different source.
+  * src may be NULL to reset rerouting. */
+EXPORT void obs_source_reroute_audio(obs_source_t *dest, obs_source_t *src);
+
 /** Signal an update to any currently used properties via 'update_properties' */
 EXPORT void obs_source_update_properties(obs_source_t *source);
 

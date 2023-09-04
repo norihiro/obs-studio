@@ -666,6 +666,11 @@ void obs_source_destroy(struct obs_source *source)
 	while (source->filters.num)
 		obs_source_filter_remove(source, source->filters.array[0]);
 
+	if (source->reroute_source)
+		obs_source_reroute_audio(source, NULL);
+	else if (source->reroute_target)
+		obs_source_reroute_audio(source->reroute_target, NULL);
+
 	obs_context_data_remove_uuid(&source->context, &obs->data.sources);
 	if (!source->context.private)
 		obs_context_data_remove_name(&source->context,
@@ -4162,6 +4167,11 @@ void obs_source_output_audio(obs_source_t *source,
 	if (!obs_ptr_valid(audio_in, "obs_source_output_audio"))
 		return;
 
+	if (source->reroute_target) {
+		obs_source_output_audio(source->reroute_target, audio_in);
+		return;
+	}
+
 	/* sets unused data pointers to NULL automatically because apparently
 	 * some filter plugins aren't checking the actual channel count, and
 	 * instead are checking to see whether the pointer is non-zero. */
@@ -4190,6 +4200,29 @@ void obs_source_output_audio(obs_source_t *source,
 	}
 
 	pthread_mutex_unlock(&source->filter_mutex);
+}
+
+void obs_source_reroute_audio(obs_source_t *dest, obs_source_t *src)
+{
+	if (!obs_source_valid(dest, "obs_source_reroute_audio"))
+		return;
+
+	/* Do not allow rerouted src to be a reroute target */
+	if (dest->reroute_target)
+		return;
+	/* Remove existing rerouting src (if any) */
+	if (dest->reroute_source) {
+		obs_source_t *old_src = dest->reroute_source;
+		dest->reroute_source = NULL;
+		old_src->reroute_target = NULL;
+	}
+	/* Undo previous rerouting of src */
+	if (src && src->reroute_target)
+		obs_source_reroute_audio(src->reroute_target, NULL);
+
+	dest->reroute_source = src;
+	if (src)
+		src->reroute_target = dest;
 }
 
 void remove_async_frame(obs_source_t *source, struct obs_source_frame *frame)
