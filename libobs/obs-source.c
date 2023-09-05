@@ -4166,10 +4166,14 @@ void obs_source_output_audio(obs_source_t *source,
 		return;
 	if (!obs_ptr_valid(audio_in, "obs_source_output_audio"))
 		return;
+	if (source->reroute_source)
+		return;
 
 	if (source->reroute_target) {
-		obs_source_output_audio(source->reroute_target, audio_in);
-		return;
+		if (destroying(source->reroute_target))
+			return;
+
+		source = source->reroute_target;
 	}
 
 	/* sets unused data pointers to NULL automatically because apparently
