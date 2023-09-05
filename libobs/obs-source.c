@@ -4155,20 +4155,17 @@ static void process_audio(obs_source_t *source,
 		downmix_to_mono_planar(source, frames);
 }
 
-void obs_source_output_audio(obs_source_t *source,
-			     const struct obs_source_audio *audio_in)
+static void
+obs_source_output_audio_internal(obs_source_t *source,
+				 const struct obs_source_audio *audio_in)
 {
 	struct obs_audio_data *output;
 
-	if (!obs_source_valid(source, "obs_source_output_audio"))
-		return;
 	if (destroying(source))
-		return;
-	if (!obs_ptr_valid(audio_in, "obs_source_output_audio"))
 		return;
 
 	if (source->reroute_target) {
-		obs_source_output_audio(source->reroute_target, audio_in);
+		obs_source_output_audio_internal(source->reroute_target, audio_in);
 		return;
 	}
 
@@ -4200,6 +4197,20 @@ void obs_source_output_audio(obs_source_t *source,
 	}
 
 	pthread_mutex_unlock(&source->filter_mutex);
+}
+
+void obs_source_output_audio(obs_source_t *source,
+			     const struct obs_source_audio *audio_in)
+{
+	if (!obs_source_valid(source, "obs_source_output_audio"))
+		return;
+	if (!obs_ptr_valid(audio_in, "obs_source_output_audio"))
+		return;
+
+	if (source->reroute_source)
+		return;
+
+	obs_source_output_audio_internal(source, audio_in);
 }
 
 void obs_source_reroute_audio(obs_source_t *dest, obs_source_t *src)
