@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#define BMEM_TRACE
+
 #include "obsconfig.h"
 
 #if !defined(__APPLE__)
@@ -153,7 +155,7 @@ void get_plugin_info(const char *path, bool *is_obs_plugin, bool *can_load)
 {
 	*is_obs_plugin = true;
 	*can_load = true;
-#if !defined(__APPLE__)
+#if !defined(__APPLE__) && !defined(BMEM_TRACE)
 	*can_load = !has_qt5_dependency(path);
 #endif
 	UNUSED_PARAMETER(path);
