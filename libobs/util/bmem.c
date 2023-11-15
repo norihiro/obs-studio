@@ -94,7 +94,14 @@ char **backtrace_symbols(const void **buffer, int size)
 static inline void register_trace(void *ptr, size_t size)
 {
 	struct bmem_trace *bt = ptr;
-	bt->nptrs = backtrace(bt->buffer, BMEM_TRACE_DEPTH);
+	void *buffer[BMEM_TRACE_DEPTH + 2];
+	int nptrs = backtrace(buffer, BMEM_TRACE_DEPTH + 2);
+	if (nptrs > 2) {
+		bt->nptrs = nptrs - 2;
+		memcpy(bt->buffer, buffer + 2, (nptrs - 2) * sizeof(void *));
+	} else {
+		bt->nptrs = 0;
+	}
 	bt->size = size;
 
 	pthread_mutex_lock(&bmem_trace_mutex);
