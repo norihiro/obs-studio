@@ -1544,17 +1544,18 @@ static void source_output_audio_data(obs_source_t *source,
 	int64_t sync_offset;
 	bool using_direct_ts = false;
 	bool push_back = false;
+	uint64_t duration = conv_frames_to_time(sample_rate, in.frames);
 
 	/* detects 'directly' set timestamps as long as they're within
 	 * a certain threshold */
-	if (uint64_diff(in.timestamp, os_time) < MAX_TS_VAR) {
+	if (uint64_diff(in.timestamp + duration, os_time) < MAX_TS_VAR) {
 		source->timing_adjust = 0;
 		source->timing_set = true;
 		using_direct_ts = true;
 	}
 
 	if (!source->timing_set) {
-		reset_audio_timing(source, in.timestamp, os_time);
+		reset_audio_timing(source, in.timestamp + duration, os_time);
 
 	} else if (source->next_audio_ts_min != 0) {
 		diff = uint64_diff(source->next_audio_ts_min, in.timestamp);
@@ -1562,10 +1563,11 @@ static void source_output_audio_data(obs_source_t *source,
 		/* smooth audio if within threshold */
 		if (diff > MAX_TS_VAR && !using_direct_ts)
 			handle_ts_jump(source, source->next_audio_ts_min,
-				       in.timestamp, diff, os_time);
+				       in.timestamp + duration, diff, os_time);
 		else if (diff < TS_SMOOTHING_THRESHOLD) {
 			if (source->async_unbuffered && source->async_decoupled)
-				source->timing_adjust = os_time - in.timestamp;
+				source->timing_adjust =
+					os_time - (in.timestamp + duration);
 			in.timestamp = source->next_audio_ts_min;
 		} else {
 			blog(LOG_DEBUG,
@@ -1577,8 +1579,7 @@ static void source_output_audio_data(obs_source_t *source,
 	}
 
 	source->last_audio_ts = in.timestamp;
-	source->next_audio_ts_min =
-		in.timestamp + conv_frames_to_time(sample_rate, in.frames);
+	source->next_audio_ts_min = in.timestamp + duration;
 
 	in.timestamp += source->timing_adjust;
 
@@ -1600,7 +1601,8 @@ static void source_output_audio_data(obs_source_t *source,
 			 * will have a timestamp jump.  If that case is encountered,
 			 * just clear the audio data in that small window and force a
 			 * resync.  This handles all cases rather than just looping. */
-			reset_audio_timing(source, data->timestamp, os_time);
+			reset_audio_timing(source, data->timestamp + duration,
+					   os_time);
 			in.timestamp = data->timestamp + source->timing_adjust;
 		}
 	}
