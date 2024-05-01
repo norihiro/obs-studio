@@ -560,6 +560,16 @@ struct obs_source_info {
 	 * @param  source  Source that the filter is being added to
 	 */
 	void (*filter_add)(void *data, obs_source_t *source);
+
+	/**
+	 * Get the property information of this source for the context bar.
+	 *
+	 * @param data      Source data
+	 * @param type_data The type_data variable of this structure
+	 * @return          The properties data
+	 */
+	obs_properties_t *(*get_short_properties)(void *data,
+							void *type_data);
 };
 
 EXPORT void obs_register_source_s(const struct obs_source_info *info,

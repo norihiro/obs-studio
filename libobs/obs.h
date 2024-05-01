@@ -1098,6 +1098,13 @@ EXPORT bool obs_source_configurable(const obs_source_t *source);
  */
 EXPORT obs_properties_t *obs_source_properties(const obs_source_t *source);
 
+/**
+ * Returns the properties list for a specific existing source for the context
+ * bar. Free with obs_properties_destroy
+ */
+EXPORT obs_properties_t *
+obs_source_short_properties(const obs_source_t *source);
+
 /** Updates settings for this source */
 EXPORT void obs_source_update(obs_source_t *source, obs_data_t *settings);
 EXPORT void obs_source_reset_settings(obs_source_t *source,

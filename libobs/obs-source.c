@@ -961,6 +961,22 @@ obs_properties_t *obs_source_properties(const obs_source_t *source)
 	return NULL;
 }
 
+obs_properties_t *obs_source_short_properties(const obs_source_t *source)
+{
+	if (!data_valid(source, "obs_source_short_properties"))
+		return NULL;
+
+	if (source->info.get_short_properties) {
+		obs_properties_t *props;
+		props = source->info.get_short_properties(
+			source->context.data, source->info.type_data);
+		obs_properties_apply_settings(props, source->context.settings);
+		return props;
+	}
+
+	return NULL;
+}
+
 uint32_t obs_source_get_output_flags(const obs_source_t *source)
 {
 	return obs_source_valid(source, "obs_source_get_output_flags")

@@ -232,6 +232,16 @@ Source Definition Structure (obs_source_info)
 
    :return: The properties of the source
 
+.. member:: obs_properties_t *(*obs_source_info.get_short_properties)(void *data, void *type_data)
+
+   Gets the short property information of this source. It is mainly used for a context bar.
+
+   :param  data:  The implementation data associated with this source.
+
+   (Optional)
+
+   :return: The properties of the source
+
 .. member:: void (*obs_source_info.update)(void *data, obs_data_t *settings)
 
    Updates the settings for this source.
@@ -1003,6 +1013,17 @@ General Source Functions
    Use these functions to get the properties of a source or source type.
    Properties are optionally used (if desired) to automatically generate
    user interface widgets to allow users to update settings.
+
+   :return: The properties list for a specific existing source.  Free with
+            :c:func:`obs_properties_destroy()`
+
+---------------------
+
+.. function:: obs_properties_t *obs_source_short_properties(const obs_source_t *source)
+
+   Use these functions to get the short properties of a source.
+   Properties are used to automatically generate user interface widgets on the
+   context bar.
 
    :return: The properties list for a specific existing source.  Free with
             :c:func:`obs_properties_destroy()`
