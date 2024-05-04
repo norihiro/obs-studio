@@ -1187,8 +1187,6 @@ static obs_properties_t *aja_source_get_properties(void *data)
 		obs_module_text(kUIPropDeactivateWhenNotShowing.text));
 	obs_properties_add_bool(props, kUIPropBuffering.id,
 				obs_module_text(kUIPropBuffering.text));
-	obs_properties_add_bool(props, kUIPropBuffering.id,
-				obs_module_text(kUIPropBuffering.text));
 
 	obs_property_set_modified_callback(vid_fmt_list,
 					   aja_video_format_changed);
