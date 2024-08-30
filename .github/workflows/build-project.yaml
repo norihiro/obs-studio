@@ -64,7 +64,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [arm64, x86_64]
+        target: [universal]
     defaults:
       run:
         shell: zsh --no-rcs --errexit --pipefail {0}
