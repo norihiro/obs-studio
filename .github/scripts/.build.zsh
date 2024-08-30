@@ -125,6 +125,12 @@ build() {
       archs=${target##*-}
       cmake_args+=(--preset 'macos-ci' -DCMAKE_OSX_ARCHITECTURES:STRING=${archs/#universal/x86_64;arm64})
 
+      cmake_args+=(
+        -D ENABLE_PLUGINS=OFF
+        -D ENABLE_UI=OFF
+        -D ENABLE_SCRIPTING=OFF
+      )
+
       typeset -gx NSUnbufferedIO=YES
 
       typeset -gx CODESIGN_IDENT="${CODESIGN_IDENT:--}"
@@ -147,7 +153,6 @@ build() {
       local -a build_args=(
         ONLY_ACTIVE_ARCH=NO
         -project obs-studio.xcodeproj
-        -target obs-studio
         -destination "generic/platform=macOS,name=Any Mac"
         -configuration ${config}
         -parallelizeTargets
@@ -178,11 +183,10 @@ build() {
         run_xcodebuild ${archive_args}
         run_xcodebuild ${export_args}
       } else {
-        run_xcodebuild ${build_args}
+        run_xcodebuild ${build_args} -target libobs
+        run_xcodebuild ${build_args} -target obs-frontend-api
 
         rm -rf OBS.app
-        mkdir OBS.app
-        ditto UI/${config}/OBS.app OBS.app
       }
       popd
       ;;

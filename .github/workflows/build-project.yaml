@@ -111,7 +111,7 @@ jobs:
 
       - name: Set Up Code Signing 🔑
         uses: ./.github/actions/setup-macos-codesigning
-        if: fromJSON(needs.check-event.outputs.codesign)
+        if: false
         id: codesign
         with:
           codesignIdentity: ${{ secrets.MACOS_SIGNING_IDENTITY }}
@@ -136,13 +136,14 @@ jobs:
         with:
           target: ${{ matrix.target }}
           config: ${{ needs.check-event.outputs.config }}
-          codesign: ${{ fromJSON(needs.check-event.outputs.codesign) }}
+          codesign: false
           codesignIdent: ${{ steps.codesign.outputs.codesignIdent }}
           codesignTeam: ${{ steps.codesign.outputs.codesignTeam }}
           provisioningProfileUUID: ${{ steps.codesign.outputs.provisioningProfileUUID }}
 
       - name: Package OBS Studio 📀
         uses: ./.github/actions/package-obs
+        if: false
         with:
           target: ${{ matrix.target }}
           config: ${{ needs.check-event.outputs.config }}
@@ -154,6 +155,7 @@ jobs:
           codesignPass: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
 
       - name: Upload Artifacts 📡
+        if: false
         uses: actions/upload-artifact@v3
         with:
           name: obs-studio-macos-${{ matrix.target }}-${{ needs.check-event.outputs.commitHash }}
@@ -161,7 +163,7 @@ jobs:
 
       - name: Upload Debug Symbol Artifacts 🪲
         uses: actions/upload-artifact@v3
-        if: ${{ needs.check-event.outputs.config == 'Release' }}
+        if: false
         with:
           name: obs-studio-macos-${{ matrix.target }}-${{ needs.check-event.outputs.commitHash }}-dSYMs
           path: ${{ github.workspace }}/build_macos/obs-studio-*-macos-${{ steps.setup.outputs.cpuName }}-dSYMs.tar.xz
@@ -176,6 +178,7 @@ jobs:
     name: Ubuntu 🐧
     runs-on: ubuntu-22.04
     needs: check-event
+    if: false
     defaults:
       run:
         shell: bash
@@ -245,6 +248,7 @@ jobs:
     name: Flatpak 📦
     runs-on: ubuntu-22.04
     needs: check-event
+    if: false
     defaults:
       run:
         shell: bash
@@ -312,6 +316,7 @@ jobs:
     name: Windows 🪟
     runs-on: windows-2022
     needs: check-event
+    if: false
     defaults:
       run:
         shell: pwsh
