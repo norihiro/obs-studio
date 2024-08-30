@@ -191,6 +191,15 @@ build() {
         ls -lR
       }
       popd
+
+      devel_files=(
+        $(git ls-files libobs/ | grep '\.h')
+        $(git ls-files UI/obs-frontend-api/ | grep '\.h')
+        build_macos/libobs/
+        build_macos/UI/obs-frontend-api/
+        build_macos/config
+      )
+      tar czf "build_macos/obs-studio-devel-$(git describe --tags)-macos-${target}.tar.gz" ${devel_files}
       ;;
     linux-*)
       local cmake_bin='/usr/bin/cmake'
