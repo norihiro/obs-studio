@@ -207,6 +207,7 @@ build() {
           run_xcodebuild ${build_args} -target libobs -target obs-frontend-api
 
           rm -rf OBS.app
+          ls -lR
         }
       }
       popd
