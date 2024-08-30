@@ -56,6 +56,7 @@ build() {
   local -r -a _valid_targets=(
     macos-x86_64
     macos-arm64
+    macos-universal
     linux-x86_64
   )
 
@@ -121,7 +122,8 @@ build() {
 
   case ${target} {
     macos-*)
-      cmake_args+=(--preset 'macos-ci' -DCMAKE_OSX_ARCHITECTURES:STRING=${target##*-})
+      archs=${target##*-}
+      cmake_args+=(--preset 'macos-ci' -DCMAKE_OSX_ARCHITECTURES:STRING=${archs/#universal/x86_64;arm64})
 
       typeset -gx NSUnbufferedIO=YES
 
