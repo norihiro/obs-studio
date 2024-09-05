@@ -224,6 +224,7 @@ build() {
 
       log_group "Configuring ${product_name}..."
       echo "cmake options: ${cmake_args}"
+      export CLICOLOR_FORCE=1
       ${cmake_bin} -S ${project_root} ${cmake_args}
 
       log_group "Building ${product_name}..."
