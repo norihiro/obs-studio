@@ -214,6 +214,7 @@ build() {
         --toolchain ${project_root}/cmake/linux/toolchain-${target##*-}-gcc.cmake
         -DENABLE_BROWSER:BOOL=ON
         -DCEF_ROOT_DIR:PATH="${project_root}/.deps/cef_binary_${CEF_VERSION}_${target//ubuntu-/linux_}"
+	-DCMAKE_COLOR_DIAGNOSTICS=ON
       )
 
       if [[ ${target##*-} == aarch64 ]] cmake-args+=(-DENABLE_QSV11:BOOL=OFF)
@@ -222,6 +223,7 @@ build() {
       cmake_install_args+=(build_${target%%-*} --prefix ${project_root}/build_${target%%-*}/install/${config})
 
       log_group "Configuring ${product_name}..."
+      echo "cmake options: ${cmake_args}"
       ${cmake_bin} -S ${project_root} ${cmake_args}
 
       log_group "Building ${product_name}..."
