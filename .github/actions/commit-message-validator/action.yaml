@@ -30,8 +30,10 @@ runs:
       working-directory: ${{ inputs.workingDirectory }}
       run: |
         : Fetch commits from GitHub
-        parent_commit="$(gh api repos/${{ github.repository }}/pulls/${{ github.event.number }}/commits | jq -r '.[0].parents[0].sha')"
-        echo "parent_commit=${parent_commit}" >> $GITHUB_OUTPUT
+        gh api repos/${{ github.repository }}/pulls/${{ github.event.number }}/commits > commits.json
+        last_commit="$(jq -r '.[-1].sha' < commits.json)"
+        parent_commit="$( jq -r '.[0].parents[0].sha' < commits.json)"
+        echo "commit_range=${parent_commit}..${last_commit}" >> $GITHUB_OUTPUT
       env:
         GH_TOKEN: ${{ github.token }}
 
@@ -47,7 +49,7 @@ runs:
         BODY_IGNORE_LINE_RE='\(^Co-Authored-By:\|\<https\?://\)'
         BODY_EXCEED_LIMIT_RE='.\{73\}'
 
-        COMMIT_RANGE="${{ steps.gh.outputs.parent_commit }}.."
+        COMMIT_RANGE="${{ steps.gh.outputs.commit_range }}"
 
         exit_code=0
         export LC_ALL=C LC_CTYPE=C LANG=C
