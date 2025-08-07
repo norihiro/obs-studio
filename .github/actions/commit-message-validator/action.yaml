@@ -72,3 +72,5 @@ runs:
           echo
         fi
         echo ::endgroup::
+
+        exit "$exit_code"
