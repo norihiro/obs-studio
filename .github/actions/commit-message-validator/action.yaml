@@ -24,19 +24,6 @@ runs:
         echo "::notice::services-validation action requires a macOS-based or Linux-based runner."
         exit 2
 
-    - name: Fetch commits from GitHub
-      shell: bash
-      id: gh
-      working-directory: ${{ inputs.workingDirectory }}
-      run: |
-        : Fetch commits from GitHub
-        gh api repos/${{ github.repository }}/pulls/${{ github.event.number }}/commits > commits.json
-        last_commit="$(jq -r '.[-1].sha' < commits.json)"
-        parent_commit="$( jq -r '.[0].parents[0].sha' < commits.json)"
-        echo "commit_range=${parent_commit}..${last_commit}" >> $GITHUB_OUTPUT
-      env:
-        GH_TOKEN: ${{ github.token }}
-
     - name: Run log message checker 🕵️
       shell: bash
       working-directory: ${{ inputs.workingDirectory }}
@@ -49,7 +36,7 @@ runs:
         BODY_IGNORE_LINE_RE='\(^Co-Authored-By:\|\<https\?://\)'
         BODY_EXCEED_LIMIT_RE='.\{73\}'
 
-        COMMIT_RANGE="${{ steps.gh.outputs.commit_range }}"
+        COMMIT_RANGE='HEAD^1..HEAD^2'
 
         exit_code=0
         export LC_ALL=C LC_CTYPE=C LANG=C
