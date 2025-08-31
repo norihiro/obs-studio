@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.28...3.30)
 add_library(obs-filters MODULE)
 add_library(OBS::filters ALIAS obs-filters)
 
+find_package(Qt6 REQUIRED Widgets)
+
 target_sources(
   obs-filters
   PRIVATE
@@ -27,9 +29,10 @@ target_sources(
     scale-filter.c
     scroll-filter.c
     sharpness-filter.c
+    AudioFilterWidget.cpp
 )
 
-target_link_libraries(obs-filters PRIVATE OBS::libobs $<$<PLATFORM_ID:Windows>:OBS::w32-pthreads>)
+target_link_libraries(obs-filters PRIVATE OBS::libobs $<$<PLATFORM_ID:Windows>:OBS::w32-pthreads> Qt::Widgets)
 
 include(cmake/speexdsp.cmake)
 include(cmake/rnnoise.cmake)
@@ -39,4 +42,4 @@ if(OS_WINDOWS)
   target_sources(obs-filters PRIVATE obs-filters.rc)
 endif()
 
-set_target_properties_obs(obs-filters PROPERTIES FOLDER plugins PREFIX "")
+set_target_properties_obs(obs-filters PROPERTIES FOLDER plugins PREFIX "" AUTOMOC ON)

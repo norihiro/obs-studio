@@ -8,6 +8,8 @@
 #include <util/deque.h>
 #include <util/threading.h>
 
+#include "audio-filter-widget.h"
+
 /* -------------------------------------------------------- */
 
 #define do_log(level, format, ...) \
@@ -32,6 +34,7 @@
 #define S_RELEASE_TIME                  "release_time"
 #define S_OUTPUT_GAIN                   "output_gain"
 #define S_SIDECHAIN_SOURCE              "sidechain_source"
+#define S_WIDGET                        "widget"
 
 #define MT_ obs_module_text
 #define TEXT_RATIO                      MT_("Compressor.Ratio")
@@ -243,6 +246,13 @@ static void compressor_update(void *data, obs_data_t *s)
 		resize_env_buffer(cd, sample_len);
 }
 
+static void current_state_proc(void *data, calldata_t *calldata)
+{
+	struct compressor_data *cd = data;
+	/* TODO: Need to consider multi-thread safety. */
+	calldata_set_float(calldata, "envelope", cd->envelope);
+}
+
 static void *compressor_create(obs_data_t *settings, obs_source_t *filter)
 {
 	struct compressor_data *cd = bzalloc(sizeof(struct compressor_data));
@@ -262,6 +272,10 @@ static void *compressor_create(obs_data_t *settings, obs_source_t *filter)
 	}
 
 	compressor_update(cd, settings);
+
+	proc_handler_t *ph = obs_source_get_proc_handler(filter);
+	proc_handler_add(ph, "void current_state(out float envelope)", current_state_proc, cd);
+
 	return cd;
 }
 
@@ -465,6 +479,15 @@ static bool add_sources(void *data, obs_source_t *source)
 	return true;
 }
 
+void *compressor_widget_allocator(obs_properties_t *props, obs_property_t *property, void *parent, void *data)
+{
+	UNUSED_PARAMETER(props);
+	UNUSED_PARAMETER(property);
+
+	struct compressor_data *cd = data;
+	return get_compressor_widget(cd->context, parent);
+}
+
 static obs_properties_t *compressor_properties(void *data)
 {
 	struct compressor_data *cd = data;
@@ -474,6 +497,9 @@ static obs_properties_t *compressor_properties(void *data)
 
 	if (cd)
 		parent = obs_filter_get_parent(cd->context);
+
+	if (cd)
+		obs_properties_add_widget(props, S_WIDGET, NULL, compressor_widget_allocator, cd);
 
 	p = obs_properties_add_float_slider(props, S_FILTER_RATIO, TEXT_RATIO, MIN_RATIO, MAX_RATIO, 0.5);
 	obs_property_float_set_suffix(p, ":1");
