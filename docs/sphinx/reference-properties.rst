@@ -363,6 +363,35 @@ Property Object Functions
 
 ---------------------
 
+.. function:: obs_property_t *obs_properties_add_widget(obs_properties_t *props, const char *name, const char *text, obs_property_widget_allocator_t allocator, void *priv)
+
+   Adds a custom widget property.  This property does not actually store any
+   settings; it's used to implement a widget in user interface if the
+   properties are used to generate user interface.
+
+   The allocator should return an instance of QWidget.
+   If the properties need to be refreshed due to changes to the property layout,
+   the callback should return true, otherwise return false.
+
+   :param    name:        Setting identifier string
+   :param    text:        Localized name, currently unused
+   :param    allocator:   Callback to be executed when a new instance is required
+   :param    priv:        Pointer passed back as the `data` argument of the callback
+   :return:               The property
+
+   Important Related Functions:
+
+      - :c:func:`obs_property_widget_allocate`
+
+   Relevant data types used with this function:
+
+.. code:: cpp
+
+   typedef void *(*obs_property_widget_allocator_t)(obs_properties_t *props,
+                    obs_property_t *property, void *parent, void *data);
+
+---------------------
+
 
 Property Enumeration Functions
 ------------------------------
@@ -428,6 +457,7 @@ Property Enumeration Functions
             - OBS_PROPERTY_EDITABLE_LIST
             - OBS_PROPERTY_FRAME_RATE
             - OBS_PROPERTY_GROUP
+            - OBS_PROPERTY_WIDGET
 
 ---------------------
 
@@ -641,6 +671,10 @@ Property Modification Functions
 ---------------------
 
 .. function:: bool obs_property_button_clicked(obs_property_t *p, void *obj)
+
+---------------------
+
+.. function:: bool obs_property_widget_allocate(obs_property_t *p, void *parent)
 
 ---------------------
 

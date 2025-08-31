@@ -99,6 +99,10 @@ struct group_data {
 	obs_properties_t *content;
 };
 
+struct widget_data {
+	obs_property_widget_allocator_t allocator;
+};
+
 static inline void path_data_free(struct path_data *data)
 {
 	bfree(data->default_path);
@@ -428,6 +432,8 @@ static inline size_t get_property_size(enum obs_property_type type)
 		return sizeof(struct group_data);
 	case OBS_PROPERTY_COLOR_ALPHA:
 		return 0;
+	case OBS_PROPERTY_WIDGET:
+		return sizeof(struct widget_data);
 	}
 
 	return 0;
@@ -657,6 +663,19 @@ obs_property_t *obs_properties_add_button2(obs_properties_t *props, const char *
 	return p;
 }
 
+obs_property_t *obs_properties_add_widget(obs_properties_t *props, const char *name, const char *text,
+					  obs_property_widget_allocator_t allocator, void *priv)
+{
+	if (!props || has_prop(props, name))
+		return NULL;
+
+	struct obs_property *p = new_prop(props, name, text, OBS_PROPERTY_WIDGET);
+	struct widget_data *data = get_property_data(p);
+	data->allocator = allocator;
+	p->priv = priv;
+	return p;
+}
+
 obs_property_t *obs_properties_add_font(obs_properties_t *props, const char *name, const char *desc)
 {
 	if (!props || has_prop(props, name))
@@ -831,6 +850,16 @@ bool obs_property_button_clicked(obs_property_t *p, void *obj)
 	}
 
 	return false;
+}
+
+void *obs_property_widget_allocate(obs_property_t *p, void *parent)
+{
+	struct widget_data *data = get_type_data(p, OBS_PROPERTY_WIDGET);
+	if (!data || !data->allocator)
+		return NULL;
+
+	obs_properties_t *top = get_topmost_parent(p->parent);
+	return data->allocator(top, p, parent, p->priv);
 }
 
 void obs_property_set_visible(obs_property_t *p, bool visible)

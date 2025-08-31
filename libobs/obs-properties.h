@@ -57,6 +57,7 @@ enum obs_property_type {
 	OBS_PROPERTY_FRAME_RATE,
 	OBS_PROPERTY_GROUP,
 	OBS_PROPERTY_COLOR_ALPHA,
+	OBS_PROPERTY_WIDGET,
 };
 
 enum obs_combo_format {
@@ -170,6 +171,9 @@ EXPORT void obs_properties_apply_settings(obs_properties_t *props, obs_data_t *s
  */
 typedef bool (*obs_property_clicked_t)(obs_properties_t *props, obs_property_t *property, void *data);
 
+typedef void *(*obs_property_widget_allocator_t)(obs_properties_t *props, obs_property_t *property, void *parent,
+						 void *data);
+
 EXPORT obs_property_t *obs_properties_add_bool(obs_properties_t *props, const char *name, const char *description);
 
 EXPORT obs_property_t *obs_properties_add_int(obs_properties_t *props, const char *name, const char *description,
@@ -220,6 +224,9 @@ EXPORT obs_property_t *obs_properties_add_button(obs_properties_t *props, const 
 EXPORT obs_property_t *obs_properties_add_button2(obs_properties_t *props, const char *name, const char *text,
 						  obs_property_clicked_t callback, void *priv);
 
+EXPORT obs_property_t *obs_properties_add_widget(obs_properties_t *props, const char *name, const char *text,
+						 obs_property_widget_allocator_t allocator, void *priv);
+
 /**
  * Adds a font selection property.
  *
@@ -257,6 +264,8 @@ EXPORT void obs_property_set_modified_callback2(obs_property_t *p, obs_property_
 
 EXPORT bool obs_property_modified(obs_property_t *p, obs_data_t *settings);
 EXPORT bool obs_property_button_clicked(obs_property_t *p, void *obj);
+
+EXPORT void *obs_property_widget_allocate(obs_property_t *p, void *parent);
 
 EXPORT void obs_property_set_visible(obs_property_t *p, bool visible);
 EXPORT void obs_property_set_enabled(obs_property_t *p, bool enabled);

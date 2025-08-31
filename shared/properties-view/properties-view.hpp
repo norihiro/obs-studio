@@ -127,6 +127,7 @@ private:
 	void AddGroup(obs_property_t *prop, QFormLayout *layout);
 
 	void AddProperty(obs_property_t *property, QFormLayout *layout);
+	void AddCustomWidget(obs_property_t *prop, QFormLayout *layout);
 
 	void resizeEvent(QResizeEvent *event) override;
 

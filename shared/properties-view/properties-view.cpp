@@ -770,6 +770,21 @@ QWidget *OBSPropertiesView::AddButton(obs_property_t *prop)
 	return NewWidget(prop, button, &QPushButton::clicked);
 }
 
+void OBSPropertiesView::AddCustomWidget(obs_property_t *prop, QFormLayout *layout)
+{
+	const char *long_desc = obs_property_long_description(prop);
+
+	auto *widget = static_cast<QWidget *>(obs_property_widget_allocate(prop, this));
+
+	if (long_desc)
+		widget->setToolTip(QT_UTF8(long_desc));
+
+	WidgetInfo *info = new WidgetInfo(this, prop, widget);
+	children.emplace_back(info);
+
+	layout->addRow(widget);
+}
+
 void OBSPropertiesView::AddColorInternal(obs_property_t *prop, QFormLayout *layout, QLabel *&label, bool supportAlpha)
 {
 	QPushButton *button = new QPushButton;
@@ -1528,6 +1543,9 @@ void OBSPropertiesView::AddProperty(obs_property_t *property, QFormLayout *layou
 		break;
 	case OBS_PROPERTY_COLOR_ALPHA:
 		AddColorAlpha(property, layout, label);
+		break;
+	case OBS_PROPERTY_WIDGET:
+		AddCustomWidget(property, layout);
 	}
 
 	if (!widget && !label)
@@ -2016,6 +2034,8 @@ void WidgetInfo::ControlChanged()
 		if (!ColorAlphaChanged(setting))
 			return;
 		break;
+	case OBS_PROPERTY_WIDGET:
+		return;
 	}
 
 	if (!recently_updated) {
